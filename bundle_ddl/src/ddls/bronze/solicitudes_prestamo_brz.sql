@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.solicitudes_prestamo_brz
+-- Bronze · bronze.lending_gzl.solicitudes_prestamo_brz
 -- Origen: Azure SQL · lending.solicitudes_prestamo  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.solicitudes_prestamo_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.solicitudes_prestamo_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_solicitud STRING COMMENT 'Identificador de la solicitud (PK en la fuente). Tipo en fuente: BIGINT',
   id_oferta STRING COMMENT 'Oferta de origen (FK a ofertas_preaprobadas); nula si no partió de una oferta. Tipo en fuente: BIGINT',

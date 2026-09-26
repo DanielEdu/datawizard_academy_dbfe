@@ -1,8 +1,8 @@
-# lending — ingesta S3 → Bronze
+# lending_gzl — ingesta S3 → Bronze
 
 Bundle con el job `job_ingesta_bronze_s3`: ingesta con Auto Loader los CSV de
-`landing/wizard_bank_rdb/<tabla>/` hacia `<catalog_bronze>.lending.<tabla>_brz`
-(tablas creadas por `bundle_ddl`). Spec: `specs/bronze_ingest.md`.
+`landing/wizard_bank_rdb/<tabla>/` hacia `<catalog_bronze>.lending_gzl.<tabla>_brz`
+(tablas creadas por `bundle_ddl_gzl`). Spec: `specs/bronze_ingest.md`.
 
 * `config/tablas_lending.yml`: tablas a ingestar (`enabled`, `opciones`) y `bucket_root`.
 * `src/main.py`: entry point (argparse + orquestación).

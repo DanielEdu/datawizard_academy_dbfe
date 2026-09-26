@@ -1,7 +1,7 @@
-# Declarative Automation Bundle: ingesta S3 → Bronze (schema lending) con Auto Loader.
+# Declarative Automation Bundle: ingesta S3 → Bronze (schema lending_gzl) con Auto Loader.
 # Spec: specs/bronze_ingest.md
 bundle:
-  name: lending
+  name: lending_gzl
   uuid: fc5eebcf-f629-48b1-ae6d-6ca12fadaa8d
 
 include:
@@ -10,7 +10,10 @@ include:
 variables:
   catalog_bronze:
     description: Catálogo destino de la capa Bronze. Cada target puede sobrescribirlo.
-    default: bronze
+    default: bronze_dev
+  schema_lending:
+    description: Schema destino de Lending en Unity Catalog.
+    default: lending_gzl
 
 targets:
   dev:
@@ -18,17 +21,19 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-dfb14324-e95d.cloud.databricks.com
-      profile: free-edition
+      host: https://dbc-deb42b22-040b.cloud.databricks.com
+      profile: giancarlo92
     variables:
-      catalog_bronze: bronze
+      catalog_bronze: bronze_dev
+      schema_lending: lending_gzl
 
   prod:
     mode: production
     workspace:
-      host: https://dbc-dfb14324-e95d.cloud.databricks.com
-      profile: free-edition
+      host: https://dbc-deb42b22-040b.cloud.databricks.com
+      profile: giancarlo92
       # Una sola copia del bundle en prod, bajo el usuario que despliega.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog_bronze: bronze
+      catalog_bronze: bronze_dev
+      schema_lending: lending_gzl

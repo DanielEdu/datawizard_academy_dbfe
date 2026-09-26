@@ -1,4 +1,4 @@
-# Spec: bundle_ddl — DDLs del Lakehouse de Wizard Bank
+# Spec: bundle_ddl_gzl — DDLs del Lakehouse de Wizard Bank
 
 ## Objetivo
 Crear un Declarative Automation Bundle con un único job, `job_ddl_lakehouse`, que ejecute
@@ -6,14 +6,14 @@ los DDL de todas las capas del Lakehouse (hoy solo Bronze; Silver y Gold se agre
 después). El job debe ser idempotente: siempre que se ejecute la priemra vez crea los objetos y las siguiente no da error ni elimina ni reemplaza.
 
 ## Contexto
-- El bundle ya fue inicializado con `databricks bundle init` y se llama `bundle_ddl`.
+- El bundle se llama `bundle_ddl_gzl`.
 - Los DDL ya existen como archivos `.sql`, uno por tabla, en `src/ddl/`.
 - Ingesta, Auto Loader, Silver y Gold quedan fuera de este bundle.
 
 ## Inputs
 - Carpeta `src/ddl/` organizada por capa:
   - `src/ddl/00_setup/00_create_schemas.sql`: crea el catálogo `bronze` y los schemas
-    `bronze.lending` y `bronze.cobranzas`. Tiene 3 sentencias.
+    `<catalog>.lending_gzl` y `<catalog>.cobranzas_gzl`. Tiene 3 sentencias.
   - `src/ddl/bronze/`: 11 archivos `<tabla>_brz.sql`
     - lending (8): paises, campanias, productos_prestamo, clientes,
       ofertas_preaprobadas, solicitudes_prestamo, desembolsos, tipos_cambio
@@ -28,8 +28,8 @@ después). El job debe ser idempotente: siempre que se ejecute la priemra vez cr
 - El job tiene tasks de tipo `sql_task` con `file.path`:
   1. `setup_schemas` ejecuta `00_setup/00_create_schemas.sql`.
   2. Una task por cada tabla de `bronze/`, con `task_key = <tabla>_brz` y
-     `depends_on: setup_schemas`. Las 12 corren en paralelo.
-- Resultado esperado: 8 tablas en `bronze.lending` y 4 en `bronze.cobranzas`.
+     `depends_on: setup_schemas`. Las 11 corren en paralelo.
+- Resultado esperado: 8 tablas en `<catalog>.lending_gzl` y 3 en `<catalog>.cobranzas_gzl`.
 - Eliminar del template todo lo que no se use (notebooks, pipeline y tests de ejemplo).
 
 ## Reglas
@@ -46,15 +46,15 @@ después). El job debe ser idempotente: siempre que se ejecute la priemra vez cr
   No se toca lo existente.
 - Sin credenciales ni IDs reales en el repo. El `warehouse_id` se pasa con `--var`.
 - Tags del job: `dominio: ddl`, `proyecto: wizard-bank`.
-- Naming: bundle `bundle_ddl`, job `job_ddl_lakehouse`.
+- Naming: bundle `bundle_ddl_gzl`, job resource `job_ddl_lakehouse` (display name `job_ddl_lakehouse_gzl`).
 
 ## Criterios de aceptación
 1. `databricks bundle validate -t dev --profile <profile> --var warehouse_id=<id>` termina sin errores.
-2. `databricks bundle deploy -t dev` crea el job con 13 tasks (1 de setup y 12 de Bronze).
+2. `databricks bundle deploy -t dev` actualiza el job con 12 tasks (1 de setup y 11 de Bronze).
 3. `databricks bundle run job_ddl_lakehouse -t dev` termina en SUCCESS.
-4. `SHOW TABLES IN bronze.lending` devuelve 8 tablas `_brz` y
-   `SHOW TABLES IN bronze.cobranzas` devuelve 4.
-5. `DESCRIBE DETAIL bronze.lending.solicitudes_prestamo_brz` muestra
+4. `SHOW TABLES IN bronze_dev.lending_gzl` devuelve 8 tablas `_brz` y
+   `SHOW TABLES IN bronze_dev.cobranzas_gzl` devuelve 3.
+5. `DESCRIBE DETAIL bronze_dev.lending_gzl.solicitudes_prestamo_brz` muestra
    `clusteringColumns = [_ingestion_ts]`, y `SHOW TBLPROPERTIES` incluye `delta.appendOnly = true`.
 6. Una segunda ejecución del job también termina en SUCCESS.
 
@@ -71,13 +71,14 @@ Ningún DDL debe tener el catálogo escrito a mano. El job pasa el catálogo en 
 ejecución según el target, y hoy vale lo mismo en todos los targets.
 
 ## Reglas
-- Variables en `databricks.yml`: `catalog_bronze` (default `bronze`). Silver y Gold agregarán
+- Variables en `databricks.yml`: `catalog_bronze` (default `bronze_dev`), `schema_lending`
+  (default `lending_gzl`) y `schema_cobranzas` (default `cobranzas_gzl`). Silver y Gold agregarán
   `catalog_silver` y `catalog_gold` cuando existan.
 - Cada target puede sobrescribir la variable en su bloque `variables:`. Hoy `dev` y `prod`
   usan el mismo valor, pero la sobrescritura debe quedar declarada.
-- Cada `sql_task` recibe el valor en `parameters: { catalog: ${var.catalog_bronze} }`.
+- Cada `sql_task` recibe el catálogo y el schema correspondiente en `parameters`.
 - En los `.sql` se usan parameter markers con `IDENTIFIER`, por ejemplo:
-  `CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.paises_brz') (...)`.
+  `CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.paises_brz') (...)`.
   Lo mismo aplica a `CREATE CATALOG` y `CREATE SCHEMA` en `00_setup`.
 - No dejar ninguna ocurrencia literal de `bronze.` como catálogo en los `.sql`.
   Los comentarios pueden mencionarlo.

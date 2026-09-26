@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.paises_brz
+-- Bronze · bronze.lending_gzl.paises_brz
 -- Origen: Azure SQL · lending.paises  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.paises_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.paises_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_pais STRING COMMENT 'Identificador del país (PK en la fuente). Tipo en fuente: SMALLINT',
   codigo_iso STRING COMMENT 'Código ISO 3166-1 alfa-2 del país (PE, CO, BO). Tipo en fuente: CHAR(2)',

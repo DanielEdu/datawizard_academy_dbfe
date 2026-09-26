@@ -1,9 +1,9 @@
--- Bronze · bronze.cobranzas.cuotas_brz
+-- Bronze · bronze.cobranzas_gzl.cuotas_brz
 -- Origen: sistema legado on-premise (simulado en Azure SQL) · cobranzas.cuotas  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.cobranzas.cuotas_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_cobranzas || '.cuotas_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_cuota STRING COMMENT 'Identificador de la cuota (IDENTITY en la fuente). Tipo en fuente: BIGINT',
   numero_credito STRING COMMENT 'Crédito al que pertenece; equivale a lending.desembolsos.id_desembolso. Tipo en fuente: BIGINT',

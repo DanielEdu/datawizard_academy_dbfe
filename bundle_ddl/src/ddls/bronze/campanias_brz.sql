@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.campanias_brz
+-- Bronze · bronze.lending_gzl.campanias_brz
 -- Origen: Azure SQL · lending.campanias  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.campanias_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.campanias_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_campania STRING COMMENT 'Identificador de la campaña (PK en la fuente). Tipo en fuente: INT',
   id_pais STRING COMMENT 'País de la campaña (FK a paises). Tipo en fuente: SMALLINT',

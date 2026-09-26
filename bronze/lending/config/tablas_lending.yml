@@ -1,5 +1,5 @@
-# Tablas del schema lending que ingesta job_ingesta_bronze_s3.
-# Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
+# Tablas del schema lending_gzl que ingesta job_ingesta_bronze_s3.
+# Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl_gzl.
 #
 # Campos por tabla:
 #   nombre:   nombre de la carpeta en landing y de la tabla destino (sin sufijo)
@@ -9,7 +9,7 @@
 
 # Raíz del bucket. main.py la usa si no se pasa --bucket_root.
 # El acceso va por la external location de Unity Catalog (sin credenciales aquí).
-bucket_root: s3://lakehouse-datawizard
+bucket_root: s3://lakehouse-datawizard-gzl
 
 tablas:
   - nombre: paises
