@@ -1,0 +1,35 @@
+# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas) con Auto Loader.
+# Reto: tablas destino con sufijo _richard (bronze.cobranzas.<tabla>_richard).
+# Basado en bronze/lending (spec: bronze/lending/specs/bronze_ingest.md).
+bundle:
+  name: cobranzas_richard
+  uuid: 6787a855-9a16-47ae-b3f5-2f1464373323
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog_bronze:
+    description: Catálogo destino de la capa Bronze. Cada target puede sobrescribirlo.
+    default: bronze
+
+targets:
+  dev:
+    # Recursos con prefijo '[dev <usuario>]' y schedules/triggers pausados.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+    variables:
+      catalog_bronze: bronze
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+      # Una sola copia del bundle en prod, bajo el usuario que despliega.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog_bronze: bronze
