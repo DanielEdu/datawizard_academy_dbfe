@@ -25,7 +25,7 @@ log = get_logger("main")
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Ingesta de landing a tablas gestionadas con Auto Loader")
     p.add_argument("--catalog", required=True, help="Catálogo destino (lo pasa el job desde la variable del bundle)")
-    p.add_argument("--schema", default="_richard", help="Schema destino")
+    p.add_argument("--schema", default="cobranzas_richard", help="Schema destino")
     p.add_argument("--bucket_root", default=None, help="Raíz del bucket; por defecto bucket_root del YAML")
     p.add_argument("--landing_prefix", default="landing/cobranzas", help="Prefijo de landing")
     p.add_argument("--checkpoint_prefix", default="checkpoint/cobranzas_richard", help="Prefijo de checkpoints")
