@@ -166,4 +166,190 @@ resources:
             file:
               path: ../src/ddls/bronze/gestiones_cobranza_richard.sql
 
-        # ── Silver / Gold: pendientes (src/ddls/silver, src/ddls/gold) ──
+        # ════════════════════════ Silver ════════════════════════
+        # Catálogo parametrizado con catalog_silver. Las tablas dependen solo del setup
+        # de Silver: no necesitan que Bronze exista para crearse (se llenan en otro job).
+        - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/00_setup/01_create_schemas_silver.sql
+
+        # ── Silver · silver.lending ──
+        - task_key: paises_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/paises.sql
+
+        - task_key: campanias_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/campanias.sql
+
+        - task_key: tipos_cambio_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/tipos_cambio.sql
+
+        - task_key: ofertas_preaprobadas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/ofertas_preaprobadas.sql
+
+        - task_key: solicitudes_prestamo_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/solicitudes_prestamo.sql
+
+        - task_key: solicitudes_estados_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/solicitudes_estados.sql
+
+        - task_key: desembolsos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/desembolsos.sql
+
+        - task_key: desembolsos_estados_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/desembolsos_estados.sql
+
+        - task_key: dim_clientes_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/dim_clientes.sql
+
+        - task_key: dim_productos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/dim_productos.sql
+
+        - task_key: cuarentena_lending_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/_cuarentena_lending.sql
+
+
+        # ── Silver · silver.cobranzas ──
+        - task_key: cuotas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/cuotas.sql
+
+        - task_key: pagos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/pagos.sql
+
+        - task_key: gestiones_cobranza_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/gestiones_cobranza.sql
+
+        - task_key: cuarentena_cobranzas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/_cuarentena_cobranzas.sql
+
+
+        # ── Silver · silver.app ──
+        - task_key: eventos_app_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/eventos_app.sql
+
+        - task_key: sesiones_app_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/sesiones_app.sql
+
+        # ── Gold: pendiente (src/ddls/gold) ──
