@@ -1,6 +1,6 @@
 # cobranzas — ingesta S3 → Bronze (reto: schema `_richard`)
 
-Bundle `cobranza_richard` con el job `job_ingesta_bronze_cobranzas_richard`: ingesta con Auto Loader los CSV de
+Bundle `cobranzas_richard` con el job `job_ingesta_bronze_cobranzas_richard`: ingesta con Auto Loader los CSV de
 `landing/cobranzas/<tabla>/` hacia `<catalog_bronze>._richard.<tabla>`
 (tablas creadas por `bundle_ddl`). Misma arquitectura que `bronze/lending`
 (spec: `bronze/lending/specs/bronze_ingest.md`).

@@ -2,7 +2,7 @@
 # Reto: schema destino _richard (bronze._richard.<tabla>).
 # Basado en bronze/lending (spec: bronze/lending/specs/bronze_ingest.md).
 bundle:
-  name: cobranza_richard
+  name: cobranzas_richard
   uuid: 6787a855-9a16-47ae-b3f5-2f1464373323
 
 include:
