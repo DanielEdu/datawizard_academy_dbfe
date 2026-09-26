@@ -1,7 +1,7 @@
-# cobranzas — ingesta S3 → Bronze (reto: schema `cobranzas_richard`)
+# cobranzas — ingesta S3 → Bronze (reto: schema `_richard`)
 
 Bundle `cobranza_richard` con el job `job_ingesta_bronze_cobranzas_richard`: ingesta con Auto Loader los CSV de
-`landing/cobranzas/<tabla>/` hacia `<catalog_bronze>.cobranzas_richard.<tabla>`
+`landing/cobranzas/<tabla>/` hacia `<catalog_bronze>._richard.<tabla>`
 (tablas creadas por `bundle_ddl`). Misma arquitectura que `bronze/lending`
 (spec: `bronze/lending/specs/bronze_ingest.md`).
 
@@ -16,7 +16,7 @@ Checkpoints y schemaLocation van en `checkpoint/cobranzas_richard/<tabla>/` y
 Prerrequisitos:
 1. External location de Unity Catalog sobre el bucket.
 2. Tablas destino creadas: desplegar y correr `job_ddl_lakehouse` de `bundle_ddl`
-   (crea el schema `cobranzas_richard` con `cuotas`, `pagos` y `gestiones_cobranza`).
+   (crea el schema `_richard` con `cuotas`, `pagos` y `gestiones_cobranza`).
 
 ```
 databricks bundle validate -t dev --profile <profile>

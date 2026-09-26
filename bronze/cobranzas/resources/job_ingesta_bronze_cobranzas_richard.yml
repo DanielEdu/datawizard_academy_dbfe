@@ -1,4 +1,4 @@
-# Job manual: ingesta con Auto Loader de landing/cobranzas en S3 → bronze.cobranzas_richard.<tabla>.
+# Job manual: ingesta con Auto Loader de landing/cobranzas en S3 → bronze._richard.<tabla>.
 # Las tablas destino las crea bundle_ddl; este job solo agrega filas (append-only).
 #
 # Imports: spark_python_task corre src/main.py como script; main.py agrega src/ al sys.path,
@@ -34,4 +34,4 @@ resources:
               - --catalog
               - ${var.catalog_bronze}
               - --schema
-              - cobranzas_richard
+              - "_richard"

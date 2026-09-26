@@ -14,7 +14,7 @@ resources:
         proyecto: wizard-bank
 
       tasks:
-        # ── Setup: catálogo bronze y schemas lending / cobranzas / cobranzas_richard ──
+        # ── Setup: catálogo bronze y schemas lending / cobranzas / _richard ──
         - task_key: setup_schemas
           sql_task:
             warehouse_id: ${var.warehouse_id}
@@ -135,7 +135,7 @@ resources:
             file:
               path: ../src/ddls/bronze/gestiones_cobranza_brz.sql
 
-        # ── Bronze · bronze.cobranzas_richard (reto, las carga bronze/cobranzas) ──
+        # ── Bronze · bronze._richard (reto, las carga bronze/cobranzas) ──
         - task_key: cuotas_richard
           depends_on:
             - task_key: setup_schemas
