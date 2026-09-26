@@ -1,0 +1,17 @@
+[project]
+name = "lending"
+version = "0.0.1"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Mantener en sync con el environment del job (resources/job_ingesta_bronze_s3.yml).
+    "pyyaml",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "databricks-connect>=16.4,<16.5",
+]
+
+[tool.ruff]
+line-length = 120

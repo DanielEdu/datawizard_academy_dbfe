@@ -1,0 +1,47 @@
+# Tablas del schema lending que ingesta job_ingesta_bronze_s3.
+# Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
+#
+# Campos por tabla:
+#   nombre:   nombre de la carpeta en landing y de la tabla destino (sin sufijo)
+#   formato:  formato de los archivos (cloudFiles.format)
+#   enabled:  false = se omite en la ejecución
+#   opciones: (opcional) opciones de lectura de Auto Loader que sobrescriben las base
+
+# Raíz del bucket. main.py la usa si no se pasa --bucket_root.
+# El acceso va por la external location de Unity Catalog (sin credenciales aquí).
+bucket_root: s3://lakehouse-datawizard
+
+tablas:
+  - nombre: paises
+    formato: csv
+    enabled: true
+
+  - nombre: campanias
+    formato: csv
+    enabled: true
+
+  # Se activa cuando exista su carpeta en landing (landing/wizard_bank_rdb/productos_prestamo/).
+  - nombre: productos_prestamo
+    formato: csv
+    enabled: true
+
+  - nombre: clientes
+    formato: csv
+    enabled: true
+
+  - nombre: ofertas_preaprobadas
+    formato: csv
+    enabled: true
+
+  - nombre: solicitudes_prestamo
+    formato: csv
+    enabled: true
+
+  - nombre: desembolsos
+    formato: csv
+    enabled: true
+
+  # Puede traer subcarpetas YYYY/MM/DD/; Auto Loader las descubre de forma recursiva.
+  - nombre: tipos_cambio
+    formato: csv
+    enabled: true
