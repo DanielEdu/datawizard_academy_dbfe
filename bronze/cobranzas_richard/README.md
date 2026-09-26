@@ -1,4 +1,4 @@
-# cobranzas — ingesta S3 → Bronze (reto: schema `_richard`)
+# cobranzas_richard — ingesta S3 → Bronze (reto: schema `_richard`)
 
 Bundle `cobranzas_richard` con el job `job_ingesta_bronze_cobranzas_richard`: ingesta con Auto Loader los CSV de
 `landing/cobranzas/<tabla>/` hacia `<catalog_bronze>._richard.<tabla>`

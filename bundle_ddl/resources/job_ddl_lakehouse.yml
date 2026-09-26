@@ -135,7 +135,7 @@ resources:
             file:
               path: ../src/ddls/bronze/gestiones_cobranza_brz.sql
 
-        # ── Bronze · bronze._richard (reto, las carga bronze/cobranzas) ──
+        # ── Bronze · bronze._richard (reto, las carga bronze/cobranzas_richard) ──
         - task_key: cuotas_richard
           depends_on:
             - task_key: setup_schemas
