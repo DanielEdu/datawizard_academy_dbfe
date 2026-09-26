@@ -1,8 +1,8 @@
-# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas) con Auto Loader.
-# Reto: tablas destino con sufijo _richard (bronze.cobranzas.<tabla>_richard).
+# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas_richard) con Auto Loader.
+# Reto: schema destino con sufijo _richard (bronze.cobranzas_richard.<tabla>).
 # Basado en bronze/lending (spec: bronze/lending/specs/bronze_ingest.md).
 bundle:
-  name: cobranzas_richard
+  name: cobranza_richard
   uuid: 6787a855-9a16-47ae-b3f5-2f1464373323
 
 include:
