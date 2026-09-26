@@ -1,0 +1,60 @@
+# ==========================================================
+# Databricks
+# ==========================================================
+# Estado local de bundles (DABs), aitools y cache del CLI
+.databricks/
+**/.databricks/
+.databrickscfg
+bundle_ddl/scratch/**
+!bundle_ddl/scratch/README.md
+**/explorations/**
+!**/explorations/README.md
+
+# ==========================================================
+# Herramientas de IA (instaladas localmente, se regeneran)
+# ==========================================================
+.ai-dev-kit/
+.claude/skills/
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
+
+# ==========================================================
+# Python
+# ==========================================================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ==========================================================
+# Secretos y variables de entorno
+# ==========================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ==========================================================
+# IDE / Sistema operativo
+# ==========================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

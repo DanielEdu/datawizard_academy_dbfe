@@ -1,0 +1,37 @@
+# Declarative Automation Bundle: DDLs del Lakehouse de Wizard Bank.
+# Spec: specs/ddl_spec.md
+bundle:
+  name: bundle_ddl
+  uuid: fe893af2-bb83-4eb6-9122-86acb650710d
+
+include:
+  - resources/*.yml
+
+variables:
+  warehouse_id:
+    description: ID del SQL warehouse serverless donde corren los DDL. Se pasa con --var warehouse_id=<id>.
+  catalog_bronze:
+    description: Catálogo de la capa Bronze. Cada target puede sobrescribirlo.
+    default: bronze
+  # catalog_silver / catalog_gold se agregan cuando existan esas capas.
+
+targets:
+  dev:
+    # Recursos con prefijo '[dev <usuario>]' y schedules/triggers pausados.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+    variables:
+      catalog_bronze: bronze
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+      # Una sola copia del bundle en prod, bajo el usuario que despliega.
+      root_path: /Workspace/wizardbank/src/${bundle.name}/${bundle.target}
+    variables:
+      catalog_bronze: bronze
