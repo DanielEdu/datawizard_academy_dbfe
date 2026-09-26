@@ -58,3 +58,4 @@ htmlcov/
 *.swp
 .DS_Store
 Thumbs.db
+scripts/datos_generados/

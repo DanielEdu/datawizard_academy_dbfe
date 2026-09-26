@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.productos_prestamo_brz
+-- Bronze · bronze.lending_gzl.productos_prestamo_brz
 -- Origen: Azure SQL · lending.productos_prestamo  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.productos_prestamo_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.productos_prestamo_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_producto STRING COMMENT 'Identificador del producto (PK en la fuente). Tipo en fuente: INT',
   id_pais STRING COMMENT 'País donde se comercializa (FK a paises). Tipo en fuente: SMALLINT',

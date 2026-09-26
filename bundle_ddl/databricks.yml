@@ -1,7 +1,7 @@
 # Declarative Automation Bundle: DDLs del Lakehouse de Wizard Bank.
 # Spec: specs/ddl_spec.md
 bundle:
-  name: bundle_ddl
+  name: bundle_ddl_gzl
   uuid: fe893af2-bb83-4eb6-9122-86acb650710d
 
 include:
@@ -12,7 +12,13 @@ variables:
     description: ID del SQL warehouse serverless donde corren los DDL. Se pasa con --var warehouse_id=<id>.
   catalog_bronze:
     description: Catálogo de la capa Bronze. Cada target puede sobrescribirlo.
-    default: bronze
+    default: bronze_dev
+  schema_lending:
+    description: Schema de Lending en Unity Catalog.
+    default: lending_gzl
+  schema_cobranzas:
+    description: Schema de Cobranzas en Unity Catalog.
+    default: cobranzas_gzl
   # catalog_silver / catalog_gold se agregan cuando existan esas capas.
 
 targets:
@@ -21,17 +27,21 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-dfb14324-e95d.cloud.databricks.com
-      profile: free-edition
+      host: https://dbc-deb42b22-040b.cloud.databricks.com
+      profile: giancarlo92
     variables:
-      catalog_bronze: bronze
+      catalog_bronze: bronze_dev
+      schema_lending: lending_gzl
+      schema_cobranzas: cobranzas_gzl
 
   prod:
     mode: production
     workspace:
-      host: https://dbc-dfb14324-e95d.cloud.databricks.com
-      profile: free-edition
+      host: https://dbc-deb42b22-040b.cloud.databricks.com
+      profile: giancarlo92
       # Una sola copia del bundle en prod, bajo el usuario que despliega.
       root_path: /Workspace/wizardbank/src/${bundle.name}/${bundle.target}
     variables:
-      catalog_bronze: bronze
+      catalog_bronze: bronze_dev
+      schema_lending: lending_gzl
+      schema_cobranzas: cobranzas_gzl

@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.desembolsos_brz
+-- Bronze · bronze.lending_gzl.desembolsos_brz
 -- Origen: Azure SQL · lending.desembolsos  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.desembolsos_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.desembolsos_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_desembolso STRING COMMENT 'Identificador del desembolso (PK en la fuente); equivale al numero_credito de cobranzas. Tipo en fuente: BIGINT',
   id_solicitud STRING COMMENT 'Solicitud desembolsada (FK única a solicitudes_prestamo). Tipo en fuente: BIGINT',

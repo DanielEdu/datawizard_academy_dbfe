@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.tipos_cambio_brz
+-- Bronze · bronze.lending_gzl.tipos_cambio_brz
 -- Origen: Azure SQL · lending.tipos_cambio  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.tipos_cambio_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.tipos_cambio_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_tipo_cambio STRING COMMENT 'Identificador del registro (PK en la fuente). Tipo en fuente: INT',
   fecha STRING COMMENT 'Fecha de negocio a la que aplica la tasa. Tipo en fuente: DATE',

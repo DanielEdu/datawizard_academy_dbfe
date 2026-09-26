@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.ofertas_preaprobadas_brz
+-- Bronze · bronze.lending_gzl.ofertas_preaprobadas_brz
 -- Origen: Azure SQL · lending.ofertas_preaprobadas  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.ofertas_preaprobadas_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.ofertas_preaprobadas_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_oferta STRING COMMENT 'Identificador de la oferta (PK en la fuente). Tipo en fuente: BIGINT',
   id_cliente STRING COMMENT 'Cliente destinatario (FK a clientes). Tipo en fuente: BIGINT',

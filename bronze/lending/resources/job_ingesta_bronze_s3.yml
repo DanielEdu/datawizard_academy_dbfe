@@ -1,12 +1,12 @@
-# Job manual: ingesta con Auto Loader de landing en S3 → bronze.lending.<tabla>_brz.
-# Las tablas destino las crea bundle_ddl; este job solo agrega filas (append-only).
+# Job manual: ingesta con Auto Loader de landing en S3 → bronze.lending_gzl.<tabla>_brz.
+# Las tablas destino las crea bundle_ddl_gzl; este job solo agrega filas (append-only).
 #
 # Imports: spark_python_task corre src/main.py como script; main.py agrega src/ al sys.path,
 # así resuelven config/, ingestion/ y utils/ sin empaquetar un wheel.
 resources:
   jobs:
     job_ingesta_bronze_s3:
-      name: job_ingesta_bronze_s3
+      name: job_ingesta_bronze_s3_gzl
       max_concurrent_runs: 1
       timeout_seconds: 3600
       tags:
@@ -32,3 +32,5 @@ resources:
             parameters:
               - --catalog
               - ${var.catalog_bronze}
+              - --schema
+              - ${var.schema_lending}

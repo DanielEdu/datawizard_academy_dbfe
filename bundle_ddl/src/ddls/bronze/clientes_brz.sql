@@ -1,9 +1,9 @@
--- Bronze · bronze.lending.clientes_brz
+-- Bronze · bronze.lending_gzl.clientes_brz
 -- Origen: Azure SQL · lending.clientes  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.clientes_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.' || :schema_lending || '.clientes_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_cliente STRING COMMENT 'Identificador del cliente (PK en la fuente). Tipo en fuente: BIGINT',
   id_pais STRING COMMENT 'País de residencia (FK a paises). Tipo en fuente: SMALLINT',

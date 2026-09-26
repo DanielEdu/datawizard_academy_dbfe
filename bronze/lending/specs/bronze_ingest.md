@@ -1,13 +1,13 @@
-# Spec: bundle_ingesta — Ingesta S3 → Bronze con Auto Loader (Wizard Bank RDB)
+# Spec: lending_gzl — Ingesta S3 → Bronze con Auto Loader (Wizard Bank RDB)
 
 ## Objetivo
 Un Declarative Automation Bundle con un job, `job_ingesta_bronze_s3`, que ejecute un
 script Python (`main.py`, no un notebook) para ingestar con Auto Loader los archivos de
-landing en S3 hacia las tablas Bronze `bronze.lending.<tabla>_brz`, ya creadas por
-`bundle_ddl`. Todo parametrizado, modular y idempotente.
+landing en S3 hacia las tablas Bronze `<catalog_bronze>.lending_gzl.<tabla>_brz`, ya creadas por
+`bundle_ddl_gzl`. Todo parametrizado, modular e idempotente.
 
 ## Contexto
-- Bucket: `s3://lakehouse-datawizard/`
+- Bucket: `s3://lakehouse-datawizard-gzl/`
   - Landing: `landing/wizard_bank_rdb/<tabla>/`
   - Checkpoints: `checkpoint/<tabla>/`
   - Schema de Auto Loader: `schemas/<tabla>/`
@@ -19,9 +19,9 @@ landing en S3 hacia las tablas Bronze `bronze.lending.<tabla>_brz`, ya creadas p
   `_metadata` STRUCT de 6 campos (file_path, file_name, file_size, file_block_start,
   file_block_length, file_modification_time), `_rescued_data` STRING y `_ingestion_ts` TIMESTAMP.
   Tienen `delta.appendOnly=true`.
-- Este job cubre solo el schema `lending`. Las tablas de `cobranzas` quedan fuera (job aparte).
+- Este job cubre solo el schema `lending_gzl`. Las tablas de `cobranzas_gzl` quedan fuera (job aparte).
 - Prerrequisito de Unity Catalog: debe existir una external location con su storage
-  credential que cubra `s3://lakehouse-datawizard/`.
+  credential que cubra `s3://lakehouse-datawizard-gzl/`.
 
 ## Estructura del bundle
 ```
@@ -53,8 +53,8 @@ para sobrescribir opciones de lectura).
 | Parámetro | Default | Descripción |
 |---|---|---|
 | `--catalog` | (variable del bundle `catalog_bronze`) | catálogo destino |
-| `--schema` | `lending` | schema destino |
-| `--bucket_root` | `s3://lakehouse-datawizard` | raíz del bucket |
+| `--schema` | `lending_gzl` | schema destino |
+| `--bucket_root` | `s3://lakehouse-datawizard-gzl` | raíz del bucket |
 | `--landing_prefix` | `landing/wizard_bank_rdb` | prefijo de landing |
 | `--checkpoint_prefix` | `checkpoint` | prefijo de checkpoints |
 | `--schema_prefix` | `schemas` | prefijo de schemaLocation |
@@ -122,7 +122,7 @@ Nada de rutas, catálogos ni nombres de tabla escritos a mano dentro del código
 3. `databricks bundle run job_ingesta_bronze_s3 -t dev` termina en SUCCESS, con un resumen
    de 7 tablas ok y `productos_prestamo` omitida.
 4. **Schema calza:** para cada tabla ingerida, las columnas de negocio de
-   `DESCRIBE bronze.lending.<tabla>_brz` coinciden en nombre y orden con el header del CSV,
+   `DESCRIBE bronze_dev.lending_gzl.<tabla>_brz` coinciden en nombre y orden con el header del CSV,
    y todas son STRING.
 5. **Conteo:** el `count(*)` de cada tabla es igual a las filas de los CSV en landing
    (lectura directa con `spark.read`).

@@ -2,11 +2,11 @@
 # Agregar una tabla nueva: un .sql en src/ddls/<capa>/ + una task aquí.
 #
 # Catálogo parametrizado (spec Cambio 1): cada sql_task recibe `catalog` en `parameters`
-# y los .sql lo consumen como parameter marker nombrado, p. ej. IDENTIFIER(:catalog || '.lending.x').
+# y los .sql lo consumen como parameter marker nombrado junto con el schema destino.
 resources:
   jobs:
     job_ddl_lakehouse:
-      name: job_ddl_lakehouse
+      name: job_ddl_lakehouse_gzl
       max_concurrent_runs: 1
       timeout_seconds: 900
       tags:
@@ -14,16 +14,18 @@ resources:
         proyecto: wizard-bank
 
       tasks:
-        # ── Setup: catálogo bronze y schemas lending / cobranzas ──
+        # ── Setup: catálogo bronze y schemas lending_gzl / cobranzas_gzl ──
         - task_key: setup_schemas
           sql_task:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
+              schema_cobranzas: ${var.schema_cobranzas}
             file:
               path: ../src/ddls/00_setup/00_create_schemas.sql
 
-        # ── Bronze · bronze.lending ──
+        # ── Bronze · bronze.lending_gzl ──
         - task_key: paises_brz
           depends_on:
             - task_key: setup_schemas
@@ -31,6 +33,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/paises_brz.sql
 
@@ -41,6 +44,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/campanias_brz.sql
 
@@ -51,6 +55,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/productos_prestamo_brz.sql
 
@@ -61,6 +66,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/clientes_brz.sql
 
@@ -71,6 +77,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/ofertas_preaprobadas_brz.sql
 
@@ -81,6 +88,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/solicitudes_prestamo_brz.sql
 
@@ -91,6 +99,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/desembolsos_brz.sql
 
@@ -101,10 +110,11 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_lending: ${var.schema_lending}
             file:
               path: ../src/ddls/bronze/tipos_cambio_brz.sql
 
-        # ── Bronze · bronze.cobranzas ──
+        # ── Bronze · bronze.cobranzas_gzl ──
         - task_key: cuotas_brz
           depends_on:
             - task_key: setup_schemas
@@ -112,6 +122,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_cobranzas: ${var.schema_cobranzas}
             file:
               path: ../src/ddls/bronze/cuotas_brz.sql
 
@@ -122,6 +133,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_cobranzas: ${var.schema_cobranzas}
             file:
               path: ../src/ddls/bronze/pagos_brz.sql
 
@@ -132,6 +144,7 @@ resources:
             warehouse_id: ${var.warehouse_id}
             parameters:
               catalog: ${var.catalog_bronze}
+              schema_cobranzas: ${var.schema_cobranzas}
             file:
               path: ../src/ddls/bronze/gestiones_cobranza_brz.sql
 
