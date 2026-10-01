@@ -1,0 +1,37 @@
+# Job manual: ingesta con Auto Loader de landing/cobranzas en S3 → bronze._acarrasco.<tabla>_brz.
+# Las tablas destino las crea bundle_ddl; este job solo agrega filas (append-only).
+#
+# Imports: spark_python_task corre src/main.py como script; main.py agrega src/ al sys.path,
+# así resuelven config/, ingestion/ y utils/ sin empaquetar un wheel.
+resources:
+  jobs:
+    job_ingesta_bronze_cobranzas_acarrasco:
+      name: job_ingesta_bronze_cobranzas_acarrasco
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      tags:
+        capa: bronze
+        dominio: ingesta
+        proyecto: wizard-bank
+        autor: acarrasco
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - pyyaml
+
+      tasks:
+        - task_key: ingesta_cobranzas
+          environment_key: default
+          # Red de seguridad para schema evolution: main.py ya reintenta una vez por tabla
+          # cuando Auto Loader detiene el stream por una columna nueva.
+          max_retries: 1
+          spark_python_task:
+            python_file: ../src/main.py
+            parameters:
+              - --catalog
+              - ${var.catalog_bronze}
+              - --schema
+              - "_acarrasco"
