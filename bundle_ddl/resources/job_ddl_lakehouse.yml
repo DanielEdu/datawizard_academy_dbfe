@@ -166,4 +166,35 @@ resources:
             file:
               path: ../src/ddls/bronze/gestiones_cobranza_richard.sql
 
+        # ── Bronze · bronze._acarrasco (reto, las carga bronze/cobranzas_acarrasco) ──
+        - task_key: cuotas_brz_acarrasco
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/cuotas_brz_acarrasco.sql
+
+        - task_key: pagos_brz_acarrasco
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/pagos_brz_acarrasco.sql
+
+        - task_key: gestiones_cobranza_brz_acarrasco
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/gestiones_cobranza_brz_acarrasco.sql
+
         # ── Silver / Gold: pendientes (src/ddls/silver, src/ddls/gold) ──
