@@ -1,0 +1,26 @@
+# Tablas del schema cobranzas_acarrasco que ingesta job_ingesta_bronze_cobranzas_acarrasco.
+# Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
+#
+# Campos por tabla:
+#   nombre:   nombre de la carpeta en landing y de la tabla destino (sin sufijo)
+#   formato:  formato de los archivos (cloudFiles.format)
+#   enabled:  false = se omite en la ejecución
+#   opciones: (opcional) opciones de lectura de Auto Loader que sobrescriben las base
+
+# Raíz del bucket. main.py la usa si no se pasa --bucket_root.
+# El acceso va por la external location de Unity Catalog (sin credenciales aquí).
+bucket_root: s3://lakehouse-datawizard
+
+# Archivos que deja ADF en landing/cobranzas/<tabla>/ (incremental por fecha_modificacion).
+tablas:
+  - nombre: cuotas
+    formato: csv
+    enabled: true
+
+  - nombre: pagos
+    formato: csv
+    enabled: true
+
+  - nombre: gestiones_cobranza
+    formato: csv
+    enabled: true
