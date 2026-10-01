@@ -1,11 +1,11 @@
-# cobranzas_acarrasco — ingesta S3 → Bronze (reto: schema `_acarrasco`)
+# cobranzas_acarrasco — ingesta S3 → Bronze (reto: schema `cobranzas_acarrasco`)
 
 Bundle `cobranzas_acarrasco` con el job `job_ingesta_bronze_cobranzas_acarrasco`: ingesta con Auto Loader los CSV de
-`landing/cobranzas/<tabla>/` hacia `<catalog_bronze>._acarrasco.<tabla>_brz`
+`landing/cobranzas/<tabla>/` hacia `<catalog_bronze>.cobranzas_acarrasco.<tabla>_brz`
 (tablas creadas por `bundle_ddl`). Misma arquitectura que `bronze/lending`
 (spec: `bronze/lending/specs/bronze_ingest.md` y `specs/cobranzas_ingest.md`).
 
-* `config/tablas_cobranzas.yml`: tablas a ingestar (`cuotas`, `pagos`, `gestiones_cobranza`) y `bucket_root`.
+* `config/tablas_cobranzas.yml`: tablas a ingestar y `bucket_root` — **no commiteado, editar antes de desplegar**.
 * `src/main.py`: entry point (argparse + orquestación). Difiere de `lending` en 5 defaults.
 * `src/ingestion/autoloader.py`: clase `AutoLoaderIngestor` (copia de `lending`).
 * `resources/job_ingesta_bronze_cobranzas_acarrasco.yml`: definición del job (serverless, manual).
@@ -18,9 +18,10 @@ porque es el estándar de la clase 14. Ver `specs/cobranzas_ingest.md` para la j
 
 Prerrequisitos:
 1. External location de Unity Catalog sobre el bucket.
-2. CSV de cobranzas subidos a `landing/cobranzas/<tabla>/` en el bucket.
-3. Tablas destino creadas: desplegar y correr `job_ddl_lakehouse` de `bundle_ddl`
-   (crea el schema `_acarrasco` con `cuotas_brz`, `pagos_brz` y `gestiones_cobranza_brz`).
+2. Editar `config/tablas_cobranzas.yml` y poner tu `bucket_root` (ej: `s3://mi-bucket`).
+3. CSV de cobranzas subidos a `landing/cobranzas/<tabla>/` en el bucket.
+4. Tablas destino creadas: desplegar y correr `job_ddl_lakehouse` de `bundle_ddl`
+   (crea el schema `cobranzas_acarrasco` con `cuotas_brz`, `pagos_brz` y `gestiones_cobranza_brz`).
 
 ```
 databricks bundle validate -t dev --profile free-edition

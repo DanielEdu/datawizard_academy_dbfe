@@ -1,9 +1,9 @@
--- Bronze · bronze._acarrasco.gestiones_cobranza_brz
+-- Bronze · bronze.cobranzas_acarrasco.gestiones_cobranza_brz
 -- Origen: sistema legado on-premise (simulado en Azure SQL) · cobranzas.gestiones_cobranza  →  Auto Loader (cloudFiles)
 -- Bronze = copia fiel de la fuente: todo en STRING, append-only, sin dedup ni modelado.
 -- Los tipos reales se aplican en Silver.
 
-CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '._acarrasco.gestiones_cobranza_brz') (
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.cobranzas_acarrasco.gestiones_cobranza_brz') (
   -- ── Columnas de negocio (todas STRING, tal cual llegan del archivo) ──
   id_gestion STRING COMMENT 'Identificador de la gestión (IDENTITY en la fuente). Tipo en fuente: BIGINT',
   numero_credito STRING COMMENT 'Crédito gestionado; equivale a lending.desembolsos.id_desembolso. Tipo en fuente: BIGINT',

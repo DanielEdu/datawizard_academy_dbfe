@@ -34,4 +34,4 @@ resources:
               - --catalog
               - ${var.catalog_bronze}
               - --schema
-              - "_acarrasco"
+              - "cobranzas_acarrasco"

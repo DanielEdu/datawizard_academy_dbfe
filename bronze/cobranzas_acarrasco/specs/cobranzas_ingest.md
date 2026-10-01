@@ -1,7 +1,7 @@
 # Spec: Bronze Ingesta — Cobranzas (_acarrasco)
 
 **Bundle:** `bronze/cobranzas_acarrasco`
-**Schema destino:** `bronze._acarrasco`
+**Schema destino:** `bronze.cobranzas_acarrasco`
 **Tablas:** `cuotas_brz`, `pagos_brz`, `gestiones_cobranza_brz`
 **Capa:** Bronze (append-only, fidelidad total a la fuente)
 
@@ -26,9 +26,9 @@ Ingerir en capa Bronze los tres archivos CSV que genera el sistema legado de cob
 
 | Tabla | Schema | Llave natural | Filas aprox. |
 |---|---|---|---|
-| `cuotas_brz` | `bronze._acarrasco` | `id_cuota` | Variable |
-| `pagos_brz` | `bronze._acarrasco` | `id_pago` | Variable |
-| `gestiones_cobranza_brz` | `bronze._acarrasco` | `id_gestion` | Variable |
+| `cuotas_brz` | `bronze.cobranzas_acarrasco` | `id_cuota` | Variable |
+| `pagos_brz` | `bronze.cobranzas_acarrasco` | `id_pago` | Variable |
+| `gestiones_cobranza_brz` | `bronze.cobranzas_acarrasco` | `id_gestion` | Variable |
 
 ## Decisiones de diseño
 
@@ -38,11 +38,11 @@ Richard (PR #2) soltó el sufijo. Se mantiene aquí porque es el estándar de la
 *tabla con sufijo de capa, schema = origen, catálogo = ambiente*. El sufijo identifica
 en qué capa está la tabla sin ambigüedad al consultarla.
 
-### 2. Schema `_acarrasco`, no `cobranzas_acarrasco`
+### 2. Schema `cobranzas_acarrasco`
 
-El esquema de namespacing sigue el patrón de Richard (`_richard`): un schema propio por
-participante, creado aditivamente en `bundle_ddl/src/ddls/00_setup/00_create_schemas.sql`.
-El prefijo `_` marca que es un schema personal de reto, no de producción.
+Un schema propio por participante, creado aditivamente en `bundle_ddl/src/ddls/00_setup/00_create_schemas.sql`.
+El nombre combina el dominio (`cobranzas`) con el participante (`acarrasco`), dejando clara la fuente y el autor.
+Richard usó `_richard`; aquí se prefiere el nombre explícito del dominio.
 
 ### 3. Checkpoints namespaceados
 
