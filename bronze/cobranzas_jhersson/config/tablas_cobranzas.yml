@@ -1,0 +1,24 @@
+# Tablas del schema cobranzas_jhersson que ingesta job_ingesta_bronze_cobranzas_jhersson.
+# Mismo formato que tablas_lending.yml; el job pasa --schema cobranzas_jhersson y
+# --landing_prefix landing/wizard_bank_onp (fuente on-premise de cobranzas).
+
+# Raíz del bucket. main.py la usa si no se pasa --bucket_root.
+# El acceso va por la external location de Unity Catalog `dlh-datawizard` (sin credenciales aquí).
+bucket_root: s3://lakehouse-datawizard-de
+
+tablas:
+  # Los CSV no traen el id (IDENTITY en la fuente: id_gestion, id_cuota, id_pago); queda nulo en Bronze.
+  - nombre: gestiones_cobranza
+    carpeta: cobranzas_jhersson
+    formato: csv
+    enabled: true
+
+  - nombre: cuotas
+    carpeta: cuotas_jhersson
+    formato: csv
+    enabled: true
+
+  - nombre: pagos
+    carpeta: pagos_jhersson
+    formato: csv
+    enabled: true

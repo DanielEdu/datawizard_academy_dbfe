@@ -1,0 +1,44 @@
+# Job manual: ingesta con Auto Loader de landing/wizard_bank_onp en S3 → <catalog>.cobranzas_jhersson.<tabla>_brz.
+# src/ es el mismo código de bronze/lending; solo cambian schema, landing y YAML de tablas.
+# Las tablas destino las crea bundle_ddl (*_brz_jhersson.sql); este job solo agrega filas (append-only).
+# Checkpoints y schemaLocation van bajo checkpoint/cobranzas_jhersson/ y schemas/cobranzas_jhersson/
+# para no mezclarse con los de otras ingestas que usan las mismas carpetas de landing.
+resources:
+  jobs:
+    job_ingesta_bronze_cobranzas_jhersson:
+      name: job_ingesta_bronze_cobranzas_jhersson
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      tags:
+        capa: bronze
+        dominio: ingesta
+        proyecto: wizard-bank
+        autor: jhersson
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - pyyaml
+
+      tasks:
+        - task_key: ingesta_cobranzas
+          environment_key: default
+          # Schema evolution: una columna nueva detiene el stream y la incorpora este reintento.
+          max_retries: 1
+          spark_python_task:
+            python_file: ../src/main.py
+            parameters:
+              - --catalog
+              - ${var.catalog_bronze}
+              - --schema
+              - cobranzas_jhersson
+              - --landing_prefix
+              - landing/wizard_bank_onp
+              - --config_path
+              - config/tablas_cobranzas.yml
+              - --checkpoint_prefix
+              - checkpoint/cobranzas_jhersson
+              - --schema_prefix
+              - schemas/cobranzas_jhersson
