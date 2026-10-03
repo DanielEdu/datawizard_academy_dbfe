@@ -73,16 +73,21 @@ from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-TECNICAS = ["_origen_archivo", "_bronze_ingestion_ts", "_procesado_ts"]
-
-
-def tipar(lote, schema_destino):
-    columnas = [F.expr(f"try_cast(`{f.name}` AS {f.dataType.simpleString()})").alias(f.name)
-                for f in schema_destino if f.name not in TECNICAS and f.name in lote.columns]
-    return lote.select(*columnas,
-                       F.col("_metadata.file_path").alias("_origen_archivo"),
-                       F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
-                       F.current_timestamp().alias("_procesado_ts"))
+def tipar(lote):
+    """Castea cada columna al tipo del DDL de tipos_cambio."""
+    return lote.selectExpr(
+        "try_cast(fecha AS DATE) AS fecha",
+        "try_cast(moneda_origen AS STRING) AS moneda_origen",
+        "try_cast(moneda_destino AS STRING) AS moneda_destino",
+        "try_cast(id_tipo_cambio AS INT) AS id_tipo_cambio",
+        "try_cast(tasa_compra AS DECIMAL(12,6)) AS tasa_compra",
+        "try_cast(tasa_venta AS DECIMAL(12,6)) AS tasa_venta",
+        "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+        "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        "_metadata.file_path AS _origen_archivo",
+        "_ingestion_ts AS _bronze_ingestion_ts",
+        "current_timestamp() AS _procesado_ts",
+    )
 
 
 def separar_invalidas(df, reglas):
@@ -94,7 +99,7 @@ def separar_invalidas(df, reglas):
 def enviar_a_cuarentena(invalidas, batch_id):
     (invalidas.select(F.lit(TABLA).alias("tabla"),
                       F.array_join("_motivos", ", ").alias("motivos"),
-                      F.to_json(F.struct(*[c for c in invalidas.columns if c != "_motivos"])).alias("fila"),
+                      F.to_json(F.struct(*invalidas.drop("_motivos").columns)).alias("fila"),
                       "_origen_archivo", F.lit(batch_id).alias("_batch_id"),
                       F.current_timestamp().alias("_procesado_ts"))
      .write.mode("append").saveAsTable(cuarentena))
@@ -109,9 +114,23 @@ def ultimo_archivo(df):
 
 
 def mergear(df):
-    valores = {c: f"s.{c}" for c in df.columns}
+    valores = {
+        "fecha": "s.fecha",
+        "moneda_origen": "s.moneda_origen",
+        "moneda_destino": "s.moneda_destino",
+        "id_tipo_cambio": "s.id_tipo_cambio",
+        "tasa_compra": "s.tasa_compra",
+        "tasa_venta": "s.tasa_venta",
+        "fecha_creacion": "s.fecha_creacion",
+        "fecha_actualizacion": "s.fecha_actualizacion",
+        "_origen_archivo": "s._origen_archivo",
+        "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+        "_procesado_ts": "s._procesado_ts",
+    }
     (DeltaTable.forName(spark, destino).alias("t")
-        .merge(df.alias("s"), " AND ".join(f"t.{c} = s.{c}" for c in CLAVE))
+        .merge(df.alias("s"), "t.fecha = s.fecha "
+                              "AND t.moneda_origen = s.moneda_origen "
+                              "AND t.moneda_destino = s.moneda_destino")
         # Guarda: solo una versión que llegó DESPUÉS pisa a la guardada
         .whenMatchedUpdate(condition="s._bronze_ingestion_ts > t._bronze_ingestion_ts", set=valores)
         .whenNotMatchedInsert(values=valores)
@@ -119,7 +138,7 @@ def mergear(df):
 
 
 def procesar_lote(lote, batch_id):
-    validas, invalidas = separar_invalidas(tipar(lote, spark.table(destino).schema), REGLAS)
+    validas, invalidas = separar_invalidas(tipar(lote), REGLAS)
     enviar_a_cuarentena(invalidas, batch_id)
     mergear(ultimo_archivo(validas))
 

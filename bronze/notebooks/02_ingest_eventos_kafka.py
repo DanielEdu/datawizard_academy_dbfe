@@ -162,9 +162,6 @@ lectura = (spark.readStream
 
 # COMMAND ----------
 
-campos_metadata = ["file_path", "file_name", "file_size",
-                   "file_block_start", "file_block_length", "file_modification_time"]
-
 payload = F.col("value").cast("string")
 e = F.from_json(payload, esquema_evento)
 
@@ -194,7 +191,14 @@ bronze = lectura.select(
     F.col("timestamp").alias("_kafka_timestamp"),
     payload.alias("_payload_crudo"),
     # Metadata de ingesta
-    F.struct(*[F.col(f"_metadata.{c}").alias(c) for c in campos_metadata]).alias("_metadata"),
+    F.struct(
+        F.col("_metadata.file_path").alias("file_path"),
+        F.col("_metadata.file_name").alias("file_name"),
+        F.col("_metadata.file_size").alias("file_size"),
+        F.col("_metadata.file_block_start").alias("file_block_start"),
+        F.col("_metadata.file_block_length").alias("file_block_length"),
+        F.col("_metadata.file_modification_time").alias("file_modification_time"),
+    ).alias("_metadata"),
     F.current_timestamp().alias("_ingestion_ts"),
 )
 

@@ -23,11 +23,6 @@ dbutils.widgets.text("catalogo_silver", "silver", "Catálogo Silver")
 dbutils.widgets.text("sufijo_destino", "_lab", "Sufijo destino (vacío = tabla real)")
 dbutils.widgets.text("checkpoints", "s3://lakehouse-datawizard/checkpoint/notebooks/silver", "Raíz de checkpoints")
 
-COLS_T2 = ["ingreso_mensual_declarado", "situacion_laboral", "score_interno", "nivel_riesgo"]
-COLS_T1 = ["email", "ciudad", "nombres", "apellidos"]
-COLS_T0 = ["id_pais", "tipo_documento", "numero_documento", "fecha_nacimiento",
-           "id_campania_captacion", "fecha_registro"]
-
 sufijo = dbutils.widgets.get("sufijo_destino")
 silver = dbutils.widgets.get("catalogo_silver")
 origen = f"{dbutils.widgets.get('catalogo_bronze')}.lending.clientes_brz"
@@ -62,21 +57,41 @@ from pyspark.sql.window import Window
 
 
 def preparar_origen(lote):
-    tipos = {f.name: f.dataType.simpleString() for f in spark.table(destino).schema}   # el DDL es el contrato
-    columnas = ["id_cliente", *COLS_T2, *COLS_T1, *COLS_T0]
-    clientes = lote.select(
-        *[F.expr(f"try_cast(`{c}` AS {tipos[c]})").alias(c) for c in columnas],
-        F.coalesce(*[F.expr(f"try_cast(`{c}` AS TIMESTAMP)")
-                     for c in ["fecha_actualizacion", "fecha_creacion", "fecha_registro"] if c in lote.columns]
-                   ).alias("fecha_actualizacion"),
-        F.col("_metadata.file_path").alias("_origen_archivo"),
-        F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
+    # Los tipos son los del DDL de dim_clientes (el DDL es el contrato)
+    clientes = lote.selectExpr(
+        "try_cast(id_cliente AS BIGINT) AS id_cliente",
+        # Tipo 2
+        "try_cast(ingreso_mensual_declarado AS DECIMAL(14,2)) AS ingreso_mensual_declarado",
+        "try_cast(situacion_laboral AS STRING) AS situacion_laboral",
+        "try_cast(score_interno AS SMALLINT) AS score_interno",
+        "try_cast(nivel_riesgo AS STRING) AS nivel_riesgo",
+        # Tipo 1
+        "try_cast(email AS STRING) AS email",
+        "try_cast(ciudad AS STRING) AS ciudad",
+        "try_cast(nombres AS STRING) AS nombres",
+        "try_cast(apellidos AS STRING) AS apellidos",
+        # Tipo 0
+        "try_cast(id_pais AS SMALLINT) AS id_pais",
+        "try_cast(tipo_documento AS STRING) AS tipo_documento",
+        "try_cast(numero_documento AS STRING) AS numero_documento",
+        "try_cast(fecha_nacimiento AS DATE) AS fecha_nacimiento",
+        "try_cast(id_campania_captacion AS INT) AS id_campania_captacion",
+        "try_cast(fecha_registro AS TIMESTAMP) AS fecha_registro",
+        # Fecha efectiva del cambio
+        """coalesce(try_cast(fecha_actualizacion AS TIMESTAMP),
+                    try_cast(fecha_creacion AS TIMESTAMP),
+                    try_cast(fecha_registro AS TIMESTAMP)) AS fecha_actualizacion""",
+        "_metadata.file_path AS _origen_archivo",
+        "_ingestion_ts AS _bronze_ingestion_ts",
     )
     w = Window.partitionBy("id_cliente").orderBy(F.col("fecha_actualizacion").desc(),
                                                  F.col("_bronze_ingestion_ts").desc())
     return (clientes.withColumn("_rn", F.row_number().over(w)).filter("_rn = 1").drop("_rn")
-            .withColumn("hash_atributos", F.sha2(F.concat_ws(
-                "||", *[F.coalesce(F.col(c).cast("string"), F.lit("")) for c in COLS_T2]), 256)))
+            .withColumn("hash_atributos", F.expr("""sha2(concat_ws('||',
+                coalesce(cast(ingreso_mensual_declarado AS STRING), ''),
+                coalesce(cast(situacion_laboral AS STRING), ''),
+                coalesce(cast(score_interno AS STRING), ''),
+                coalesce(cast(nivel_riesgo AS STRING), '')), 256)""")))
 
 
 # Probar sobre un pedazo de Bronze
@@ -124,9 +139,6 @@ def clasificar(origen_df):
 
 # COMMAND ----------
 
-COLS_VERSION = ["id_cliente", *COLS_T2, *COLS_T1, *COLS_T0]
-
-
 def merge_tipo_2(cambios):
     a_cerrar = cambios.filter("hash_actual IS NOT NULL").withColumn("clave_merge", F.col("id_cliente"))
     a_insertar = cambios.withColumn("clave_merge", F.lit(None).cast("bigint"))
@@ -139,7 +151,21 @@ def merge_tipo_2(cambios):
             "es_vigente": "false",
             "_procesado_ts": "current_timestamp()"})
         .whenNotMatchedInsert(values={
-            **{c: f"o.{c}" for c in COLS_VERSION},
+            "id_cliente": "o.id_cliente",
+            "ingreso_mensual_declarado": "o.ingreso_mensual_declarado",
+            "situacion_laboral": "o.situacion_laboral",
+            "score_interno": "o.score_interno",
+            "nivel_riesgo": "o.nivel_riesgo",
+            "email": "o.email",
+            "ciudad": "o.ciudad",
+            "nombres": "o.nombres",
+            "apellidos": "o.apellidos",
+            "id_pais": "o.id_pais",
+            "tipo_documento": "o.tipo_documento",
+            "numero_documento": "o.numero_documento",
+            "fecha_nacimiento": "o.fecha_nacimiento",
+            "id_campania_captacion": "o.id_campania_captacion",
+            "fecha_registro": "o.fecha_registro",
             "fecha_inicio_vigencia": "o.fecha_actualizacion",
             "fecha_fin_vigencia": "NULL",
             "es_vigente": "true",
@@ -160,12 +186,20 @@ def merge_tipo_2(cambios):
 # COMMAND ----------
 
 def merge_tipo_1(origen_df):
-    distinto = " OR ".join(f"NOT (d.{c} <=> o.{c})" for c in COLS_T1)
     (DeltaTable.forName(spark, destino).alias("d")
         .merge(origen_df.alias("o"), "d.id_cliente = o.id_cliente AND d.es_vigente")
         .whenMatchedUpdate(
-            condition=f"o.fecha_actualizacion >= d.fecha_inicio_vigencia AND ({distinto})",
-            set={**{c: f"o.{c}" for c in COLS_T1}, "_procesado_ts": "current_timestamp()"})
+            condition="""o.fecha_actualizacion >= d.fecha_inicio_vigencia AND (
+                             NOT (d.email <=> o.email)
+                          OR NOT (d.ciudad <=> o.ciudad)
+                          OR NOT (d.nombres <=> o.nombres)
+                          OR NOT (d.apellidos <=> o.apellidos))""",
+            set={
+                "email": "o.email",
+                "ciudad": "o.ciudad",
+                "nombres": "o.nombres",
+                "apellidos": "o.apellidos",
+                "_procesado_ts": "current_timestamp()"})
         .execute())
 
 

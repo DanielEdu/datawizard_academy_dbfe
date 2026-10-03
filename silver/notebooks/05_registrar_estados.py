@@ -29,7 +29,6 @@ dbutils.widgets.text("sufijo_destino", "_lab", "Sufijo destino (vacío = tabla r
 dbutils.widgets.text("checkpoints", "s3://lakehouse-datawizard/checkpoint/notebooks/silver", "Raíz de checkpoints")
 
 CLAVE = ["id_solicitud", "fecha_actualizacion"]
-ORDEN = ["fecha_actualizacion", "fecha_creacion", "fecha_hora_solicitud"]
 REGLAS = {
     "clave": "id_solicitud IS NOT NULL",
     "estado_valido": "estado_solicitud IN ('Iniciada','En evaluacion','Aprobada','Rechazada','Desistida')",
@@ -65,18 +64,26 @@ print(f"Origen: {origen}\nDestino: {destino}\nCheckpoint: {checkpoint}")
 from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 
-TECNICAS = ["_origen_archivo", "_bronze_ingestion_ts", "_procesado_ts"]
 
-
-def tipar(lote, schema_destino):
-    # fecha_creacion y fecha_hora_solicitud no están en el destino, pero hacen falta como respaldo del orden
-    respaldo = [F.expr(f"try_cast(`{c}` AS TIMESTAMP)").alias(c) for c in ORDEN[1:] if c in lote.columns]
-    columnas = [F.expr(f"try_cast(`{f.name}` AS {f.dataType.simpleString()})").alias(f.name)
-                for f in schema_destino if f.name not in TECNICAS and f.name in lote.columns]
-    return lote.select(*columnas, *respaldo,
-                       F.col("_metadata.file_path").alias("_origen_archivo"),
-                       F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
-                       F.current_timestamp().alias("_procesado_ts"))
+def tipar(lote):
+    """Castea cada columna al tipo del DDL de solicitudes_estados."""
+    return lote.selectExpr(
+        "try_cast(id_solicitud AS BIGINT) AS id_solicitud",
+        "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        "try_cast(estado_solicitud AS STRING) AS estado_solicitud",
+        "try_cast(score_evaluacion AS SMALLINT) AS score_evaluacion",
+        "try_cast(decision_motor AS STRING) AS decision_motor",
+        "try_cast(monto_aprobado AS DECIMAL(14,2)) AS monto_aprobado",
+        "try_cast(tasa_aprobada AS DECIMAL(6,3)) AS tasa_aprobada",
+        "try_cast(motivo_rechazo AS STRING) AS motivo_rechazo",
+        "try_cast(fecha_hora_resolucion AS TIMESTAMP) AS fecha_hora_resolucion",
+        # No están en el destino, pero hacen falta como respaldo del orden
+        "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+        "try_cast(fecha_hora_solicitud AS TIMESTAMP) AS fecha_hora_solicitud",
+        "_metadata.file_path AS _origen_archivo",
+        "_ingestion_ts AS _bronze_ingestion_ts",
+        "current_timestamp() AS _procesado_ts",
+    )
 
 
 def separar_invalidas(df, reglas):
@@ -88,25 +95,40 @@ def separar_invalidas(df, reglas):
 def enviar_a_cuarentena(invalidas, batch_id):
     (invalidas.select(F.lit("solicitudes_estados").alias("tabla"),
                       F.array_join("_motivos", ", ").alias("motivos"),
-                      F.to_json(F.struct(*[c for c in invalidas.columns if c != "_motivos"])).alias("fila"),
+                      F.to_json(F.struct(*invalidas.drop("_motivos").columns)).alias("fila"),
                       "_origen_archivo", F.lit(batch_id).alias("_batch_id"),
                       F.current_timestamp().alias("_procesado_ts"))
      .write.mode("append").saveAsTable(cuarentena))
 
 
 def procesar_lote(lote, batch_id):
-    schema_destino = spark.table(destino).schema
-    validas, invalidas = separar_invalidas(tipar(lote, schema_destino), REGLAS)
+    validas, invalidas = separar_invalidas(tipar(lote), REGLAS)
     enviar_a_cuarentena(invalidas, batch_id)
 
     versiones = (validas
-        .withColumn("fecha_actualizacion", F.coalesce(*[F.col(c) for c in ORDEN if c in validas.columns]))
+        .withColumn("fecha_actualizacion",
+                    F.coalesce(F.col("fecha_actualizacion"), F.col("fecha_creacion"), F.col("fecha_hora_solicitud")))
         .dropDuplicates(CLAVE)
-        .select(*[f.name for f in schema_destino]))
+        .select("id_solicitud", "fecha_actualizacion", "estado_solicitud", "score_evaluacion",
+                "decision_motor", "monto_aprobado", "tasa_aprobada", "motivo_rechazo",
+                "fecha_hora_resolucion", "_origen_archivo", "_bronze_ingestion_ts", "_procesado_ts"))
 
     (DeltaTable.forName(spark, destino).alias("t")
-        .merge(versiones.alias("s"), " AND ".join(f"t.{c} = s.{c}" for c in CLAVE))
-        .whenNotMatchedInsertAll()
+        .merge(versiones.alias("s"),
+               "t.id_solicitud = s.id_solicitud AND t.fecha_actualizacion = s.fecha_actualizacion")
+        .whenNotMatchedInsert(values={
+            "id_solicitud": "s.id_solicitud",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "estado_solicitud": "s.estado_solicitud",
+            "score_evaluacion": "s.score_evaluacion",
+            "decision_motor": "s.decision_motor",
+            "monto_aprobado": "s.monto_aprobado",
+            "tasa_aprobada": "s.tasa_aprobada",
+            "motivo_rechazo": "s.motivo_rechazo",
+            "fecha_hora_resolucion": "s.fecha_hora_resolucion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts"})
         .execute())
 
 # COMMAND ----------
