@@ -9,7 +9,11 @@ include:
 
 variables:
   warehouse_id:
-    description: ID del SQL warehouse serverless donde corren los DDL. Se pasa con --var warehouse_id=<id>.
+    description: >-
+      SQL warehouse serverless donde corren los DDL. Se resuelve por nombre (lookup) en cada target,
+      sin IDs en el repo; se puede sobrescribir con --var warehouse_id=<id>.
+    lookup:
+      warehouse: Serverless Starter Warehouse
   catalog_bronze:
     description: Catálogo de la capa Bronze. Cada target puede sobrescribirlo.
     default: bronze

@@ -1,5 +1,5 @@
-# Tablas del schema _richard que ingesta job_bronze_cobranzas_richard_ingest.
-# Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
+# Tablas del schema cobranzas que ingesta job_bronze_cobranzas_ingest.
+# Agregar una tabla: una entrada aquí + su carpeta en landing/wizard_bank_onp/ + su DDL en bundle_ddl.
 #
 # Campos por tabla:
 #   nombre:   nombre de la carpeta en landing y de la tabla destino (sin sufijo)
@@ -11,7 +11,6 @@
 # El acceso va por la external location de Unity Catalog (sin credenciales aquí).
 bucket_root: s3://lakehouse-datawizard
 
-# Archivos que deja ADF en landing/cobranzas/<tabla>/ (incremental por fecha_modificacion).
 tablas:
   - nombre: cuotas
     formato: csv

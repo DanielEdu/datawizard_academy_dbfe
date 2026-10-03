@@ -1,4 +1,4 @@
-# Tablas del schema lending que ingesta job_ingesta_bronze_s3.
+# Tablas del schema lending que ingesta job_bronze_lending_ingest.
 # Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
 #
 # Campos por tabla:

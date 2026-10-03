@@ -1,10 +1,8 @@
-# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas_jhersson) con Auto Loader.
-# Reto: schema destino cobranzas_jhersson (bronze.cobranzas_jhersson.<tabla>_brz).
-# Fuente: sistema legado on-premise de cobranzas (landing/wizard_bank_onp).
-# Mismo código que bronze/lending; spec: specs/bronze-ingest-cobranzas.md
+# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas) con Auto Loader.
+# Spec: specs/bronze_ingest_cobranzas.md
 bundle:
-  name: cobranzas_jhersson
-  uuid: 85c24242-dc60-4351-9bc6-80ebac63d780
+  name: cobranzas
+  uuid: 2aac34b8-8bce-4db5-8b68-33936bc641ac
 
 include:
   - resources/*.yml

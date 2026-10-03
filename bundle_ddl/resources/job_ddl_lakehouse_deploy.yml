@@ -5,8 +5,8 @@
 # y los .sql lo consumen como parameter marker nombrado, p. ej. IDENTIFIER(:catalog || '.lending.x').
 resources:
   jobs:
-    job_ddl_lakehouse:
-      name: job_ddl_lakehouse
+    job_ddl_lakehouse_deploy:
+      name: job_ddl_lakehouse_deploy
       max_concurrent_runs: 1
       timeout_seconds: 900
       tags:

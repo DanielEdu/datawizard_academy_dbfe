@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.dim_productos') (
   _procesado_ts          TIMESTAMP NOT NULL       COMMENT 'Momento en que el job de Silver escribió o actualizó la fila'
 )
 USING DELTA
-CLUSTER BY (id_producto, es_vigente)
+CLUSTER BY (id_producto, fecha_inicio_vigencia)
 COMMENT 'Catálogo de productos de préstamo historizado con SCD Tipo 2: la tasa y las condiciones cambian, y un crédito se otorgó con las que regían ese día. Tasa, montos, plazos y es_activo son Tipo 2; nombre y tipo son Tipo 1; el país es Tipo 0. Se construye desde bronze.lending.productos_prestamo_brz con la misma función SCD2 que dim_clientes. CDF activo.'
 TBLPROPERTIES (
   -- Etiquetas propias (Delta no las interpreta): capa, linaje y patrón de carga.

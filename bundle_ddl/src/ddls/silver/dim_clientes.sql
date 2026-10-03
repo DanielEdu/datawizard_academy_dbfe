@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS IDENTIFIER(:catalog || '.lending.dim_clientes') (
   _procesado_ts              TIMESTAMP NOT NULL       COMMENT 'Momento en que el job de Silver escribió o actualizó la fila'
 )
 USING DELTA
-CLUSTER BY (id_cliente, es_vigente)
+CLUSTER BY (id_cliente, fecha_inicio_vigencia)
 COMMENT 'Maestro de clientes historizado con SCD Tipo 2: una fila por VERSIÓN del cliente, con vigencia. El tipo SCD se decide por columna: ingreso, situación laboral, score y nivel de riesgo son Tipo 2 (un cambio abre versión nueva); email, ciudad, nombres y apellidos son Tipo 1 (se pisan en la versión vigente); documento, fecha de nacimiento, país, campaña de captación y fecha de registro son Tipo 0. Se construye desde bronze.lending.clientes_brz con MERGE de doble source dentro de foreachBatch. Permite el join temporal: ¿con qué ingreso y score se aprobó cada solicitud? Contiene PII (enmascarar en Unity Catalog, S21). CDF activo.'
 TBLPROPERTIES (
   -- Etiquetas propias (Delta no las interpreta): capa, linaje y patrón de carga.

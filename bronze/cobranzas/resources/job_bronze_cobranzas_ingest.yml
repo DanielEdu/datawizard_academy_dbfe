@@ -1,0 +1,45 @@
+# Job manual: ingesta con Auto Loader de landing/wizard_bank_onp en S3 → bronze.cobranzas.<tabla>_brz (sistema legado on-premise de cobranzas).
+# Las tablas destino las crea bundle_ddl; este job solo agrega filas (append-only).
+#
+# Imports: spark_python_task corre src/main.py como script; main.py agrega src/ al sys.path,
+# así resuelven config/, ingestion/ y utils/ sin empaquetar un wheel.
+resources:
+  jobs:
+    job_bronze_cobranzas_ingest:
+      name: job_bronze_cobranzas_ingest
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      tags:
+        capa: bronze
+        dominio: ingesta
+        proyecto: wizard-bank
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - pyyaml
+
+      tasks:
+        - task_key: ingest_cobranzas
+          environment_key: default
+          # Red de seguridad para schema evolution: main.py ya reintenta una vez por tabla
+          # cuando Auto Loader detiene el stream por una columna nueva.
+          max_retries: 1
+          spark_python_task:
+            python_file: ../src/main.py
+            parameters:
+              - --catalog
+              - ${var.catalog_bronze}
+              - --schema
+              - cobranzas
+              - --landing_prefix
+              - landing/wizard_bank_onp
+              - --config_path
+              - config/tablas_cobranzas.yml
+              # Checkpoints y schemaLocation separados de los de lending y de los retos.
+              - --checkpoint_prefix
+              - checkpoint/cobranzas
+              - --schema_prefix
+              - schemas/cobranzas

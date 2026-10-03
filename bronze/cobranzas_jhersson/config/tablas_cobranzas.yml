@@ -1,4 +1,4 @@
-# Tablas del schema cobranzas_jhersson que ingesta job_ingesta_bronze_cobranzas_jhersson.
+# Tablas del schema cobranzas_jhersson que ingesta job_bronze_cobranzas_jhersson_ingest.
 # Mismo formato que tablas_lending.yml; el job pasa --schema cobranzas_jhersson y
 # --landing_prefix landing/wizard_bank_onp (fuente on-premise de cobranzas).
 
