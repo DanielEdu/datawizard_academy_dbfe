@@ -1,0 +1,35 @@
+# Job manual: ingesta con Auto Loader de los .parquet de Kafka en landing/wizard_bank_kafka/eventos_app/
+# → bronze.app.eventos_app_brz. La tabla la crea bundle_ddl (eventos_app_brz.sql); este job solo agrega filas.
+resources:
+  jobs:
+    job_bronze_app_ingest:
+      name: job_bronze_app_ingest
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      tags:
+        capa: bronze
+        dominio: ingesta
+        proyecto: wizard-bank
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
+      tasks:
+        - task_key: ingest_eventos_app
+          environment_key: default
+          max_retries: 1
+          spark_python_task:
+            python_file: ../src/main.py
+            parameters:
+              - --catalog
+              - ${var.catalog_bronze}
+              - --schema
+              - app
+              - --tabla
+              - eventos_app
+              - --landing
+              - ${var.bucket_root}/landing/wizard_bank_kafka/eventos_app
+              - --checkpoint
+              - ${var.bucket_root}/checkpoint/app/eventos_app
