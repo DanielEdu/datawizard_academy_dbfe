@@ -1,4 +1,4 @@
-# Tablas del schema _richard que ingesta job_ingesta_bronze_cobranzas_richard.
+# Tablas del schema _richard que ingesta job_bronze_cobranzas_richard_ingest.
 # Agregar una tabla: una entrada aquí + su carpeta en landing + su DDL en bundle_ddl.
 #
 # Campos por tabla:

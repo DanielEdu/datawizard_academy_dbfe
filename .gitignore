@@ -58,3 +58,8 @@ htmlcov/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Datos generados por scripts/data_generetor (se suben a S3, no al repo)
+scripts/data_generetor/csv_*/
+scripts/data_generetor/parquet_*/
+scripts/data_generetor/datos_*/

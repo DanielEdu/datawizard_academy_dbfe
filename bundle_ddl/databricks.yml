@@ -9,11 +9,18 @@ include:
 
 variables:
   warehouse_id:
-    description: ID del SQL warehouse serverless donde corren los DDL. Se pasa con --var warehouse_id=<id>.
+    description: >-
+      SQL warehouse serverless donde corren los DDL. Se resuelve por nombre (lookup) en cada target,
+      sin IDs en el repo; se puede sobrescribir con --var warehouse_id=<id>.
+    lookup:
+      warehouse: Serverless Starter Warehouse
   catalog_bronze:
     description: Catálogo de la capa Bronze. Cada target puede sobrescribirlo.
     default: bronze
-  # catalog_silver / catalog_gold se agregan cuando existan esas capas.
+  catalog_silver:
+    description: Catálogo de la capa Silver. Cada target puede sobrescribirlo.
+    default: silver
+  # catalog_gold se agrega cuando exista esa capa.
 
 targets:
   dev:
@@ -25,6 +32,7 @@ targets:
       profile: free-edition
     variables:
       catalog_bronze: bronze
+      catalog_silver: silver
 
   prod:
     mode: production
@@ -35,3 +43,4 @@ targets:
       root_path: /Workspace/wizardbank/src/${bundle.name}/${bundle.target}
     variables:
       catalog_bronze: bronze
+      catalog_silver: silver

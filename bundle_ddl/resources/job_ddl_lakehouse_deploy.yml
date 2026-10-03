@@ -1,0 +1,397 @@
+# Job manual que crea (idempotente, CREATE ... IF NOT EXISTS) los objetos del Lakehouse.
+# Agregar una tabla nueva: un .sql en src/ddls/<capa>/ + una task aquí.
+#
+# Catálogo parametrizado (spec Cambio 1): cada sql_task recibe `catalog` en `parameters`
+# y los .sql lo consumen como parameter marker nombrado, p. ej. IDENTIFIER(:catalog || '.lending.x').
+resources:
+  jobs:
+    job_ddl_lakehouse_deploy:
+      name: job_ddl_lakehouse_deploy
+      max_concurrent_runs: 1
+      timeout_seconds: 900
+      tags:
+        dominio: ddl
+        proyecto: wizard-bank
+
+      tasks:
+        # ── Setup: catálogo bronze y schemas lending / cobranzas / app / _richard / cobranzas_jhersson ──
+        - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/00_setup/00_create_schemas.sql
+
+        # ── Bronze · bronze.lending ──
+        - task_key: paises_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/paises_brz.sql
+
+        - task_key: campanias_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/campanias_brz.sql
+
+        - task_key: productos_prestamo_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/productos_prestamo_brz.sql
+
+        - task_key: clientes_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/clientes_brz.sql
+
+        - task_key: ofertas_preaprobadas_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/ofertas_preaprobadas_brz.sql
+
+        - task_key: solicitudes_prestamo_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/solicitudes_prestamo_brz.sql
+
+        - task_key: desembolsos_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/desembolsos_brz.sql
+
+        - task_key: tipos_cambio_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/tipos_cambio_brz.sql
+
+        # ── Bronze · bronze.cobranzas ──
+        - task_key: cuotas_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/cuotas_brz.sql
+
+        - task_key: pagos_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/pagos_brz.sql
+
+        - task_key: gestiones_cobranza_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/gestiones_cobranza_brz.sql
+
+        # ── Bronze · bronze.app ──
+        - task_key: eventos_app_brz
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/eventos_app_brz.sql
+
+        # ── Bronze · bronze._richard (reto, las carga bronze/cobranzas_richard) ──
+        - task_key: cuotas_richard
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/cuotas_richard.sql
+
+        - task_key: pagos_richard
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/pagos_richard.sql
+
+        - task_key: gestiones_cobranza_richard
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/gestiones_cobranza_richard.sql
+
+        # ── Bronze · bronze.cobranzas_jhersson (reto, las carga bronze/cobranzas_jhersson) ──
+        - task_key: cuotas_brz_jhersson
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/cuotas_brz_jhersson.sql
+
+        - task_key: pagos_brz_jhersson
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/pagos_brz_jhersson.sql
+
+        - task_key: gestiones_cobranza_brz_jhersson
+          depends_on:
+            - task_key: setup_schemas
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_bronze}
+            file:
+              path: ../src/ddls/bronze/gestiones_cobranza_brz_jhersson.sql
+
+        # ════════════════════════ Silver ════════════════════════
+        # Catálogo parametrizado con catalog_silver. Las tablas dependen solo del setup
+        # de Silver: no necesitan que Bronze exista para crearse (se llenan en otro job).
+        - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/00_setup/01_create_schemas_silver.sql
+
+        # ── Silver · silver.lending ──
+        - task_key: paises_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/paises.sql
+
+        - task_key: campanias_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/campanias.sql
+
+        - task_key: tipos_cambio_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/tipos_cambio.sql
+
+        - task_key: ofertas_preaprobadas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/ofertas_preaprobadas.sql
+
+        - task_key: solicitudes_prestamo_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/solicitudes_prestamo.sql
+
+        - task_key: solicitudes_estados_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/solicitudes_estados.sql
+
+        - task_key: desembolsos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/desembolsos.sql
+
+        - task_key: desembolsos_estados_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/desembolsos_estados.sql
+
+        - task_key: dim_clientes_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/dim_clientes.sql
+
+        - task_key: dim_productos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/dim_productos.sql
+
+        - task_key: cuarentena_lending_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/_cuarentena_lending.sql
+
+
+        # ── Silver · silver.cobranzas ──
+        - task_key: cuotas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/cuotas.sql
+
+        - task_key: pagos_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/pagos.sql
+
+        - task_key: gestiones_cobranza_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/gestiones_cobranza.sql
+
+        - task_key: cuarentena_cobranzas_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/_cuarentena_cobranzas.sql
+
+
+        # ── Silver · silver.app ──
+        - task_key: eventos_app_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/eventos_app.sql
+
+        - task_key: sesiones_app_slv
+          depends_on:
+            - task_key: setup_schemas_silver
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog_silver}
+            file:
+              path: ../src/ddls/silver/sesiones_app.sql
+
+        # ── Gold: pendiente (src/ddls/gold) ──

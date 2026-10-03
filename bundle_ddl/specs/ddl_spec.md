@@ -1,7 +1,7 @@
 # Spec: bundle_ddl — DDLs del Lakehouse de Wizard Bank
 
 ## Objetivo
-Crear un Declarative Automation Bundle con un único job, `job_ddl_lakehouse`, que ejecute
+Crear un Declarative Automation Bundle con un único job, `job_ddl_lakehouse_deploy`, que ejecute
 los DDL de todas las capas del Lakehouse (hoy solo Bronze; Silver y Gold se agregarán
 después). El job debe ser idempotente: siempre que se ejecute la priemra vez crea los objetos y las siguiente no da error ni elimina ni reemplaza.
 
@@ -20,11 +20,11 @@ después). El job debe ser idempotente: siempre que se ejecute la priemra vez cr
     - cobranzas (3): cuotas, pagos, gestiones_cobranza
   - `src/ddl/silver/` y `src/ddl/gold/`: vacías, con `.gitkeep`.
 - Todos los DDL usan `CREATE ... IF NOT EXISTS`.
-- Variable del bundle: `warehouse_id`, sin default.
+- Variable del bundle: `warehouse_id`, resuelta por nombre con `lookup` al SQL warehouse serverless `Serverless Starter Warehouse` (sobrescribible con `--var`).
 
 ## Outputs
 - `databricks.yml` con las variables y los targets `dev` y `prod`.
-- `resources/job_ddl_lakehouse.yml` con el job.
+- `resources/job_ddl_lakehouse_deploy.yml` con el job.
 - El job tiene tasks de tipo `sql_task` con `file.path`:
   1. `setup_schemas` ejecuta `00_setup/00_create_schemas.sql`.
   2. Una task por cada tabla de `bronze/`, con `task_key = <tabla>_brz` y
@@ -44,14 +44,14 @@ después). El job debe ser idempotente: siempre que se ejecute la priemra vez cr
   - Ambos con `workspace.host` y `profile` explícitos. No seleccionar el profile automáticamente.
 - Agregar una tabla nueva = un `.sql` en la carpeta de su capa + una task en el YAML.
   No se toca lo existente.
-- Sin credenciales ni IDs reales en el repo. El `warehouse_id` se pasa con `--var`.
+- Sin credenciales ni IDs reales en el repo. El `warehouse_id` se resuelve con `lookup` por nombre.
 - Tags del job: `dominio: ddl`, `proyecto: wizard-bank`.
-- Naming: bundle `bundle_ddl`, job `job_ddl_lakehouse`.
+- Naming: bundle `bundle_ddl`, job `job_ddl_lakehouse_deploy`.
 
 ## Criterios de aceptación
-1. `databricks bundle validate -t dev --profile <profile> --var warehouse_id=<id>` termina sin errores.
+1. `databricks bundle validate -t dev --profile <profile>` termina sin errores.
 2. `databricks bundle deploy -t dev` crea el job con 13 tasks (1 de setup y 12 de Bronze).
-3. `databricks bundle run job_ddl_lakehouse -t dev` termina en SUCCESS.
+3. `databricks bundle run job_ddl_lakehouse_deploy -t dev` termina en SUCCESS.
 4. `SHOW TABLES IN bronze.lending` devuelve 8 tablas `_brz` y
    `SHOW TABLES IN bronze.cobranzas` devuelve 4.
 5. `DESCRIBE DETAIL bronze.lending.solicitudes_prestamo_brz` muestra

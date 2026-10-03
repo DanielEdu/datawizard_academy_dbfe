@@ -5,8 +5,8 @@
 # para no mezclarse con los de otras ingestas que usan las mismas carpetas de landing.
 resources:
   jobs:
-    job_ingesta_bronze_cobranzas_jhersson:
-      name: job_ingesta_bronze_cobranzas_jhersson
+    job_bronze_cobranzas_jhersson_ingest:
+      name: job_bronze_cobranzas_jhersson_ingest
       max_concurrent_runs: 1
       timeout_seconds: 3600
       tags:
@@ -23,7 +23,7 @@ resources:
               - pyyaml
 
       tasks:
-        - task_key: ingesta_cobranzas
+        - task_key: ingest_cobranzas
           environment_key: default
           # Schema evolution: una columna nueva detiene el stream y la incorpora este reintento.
           max_retries: 1

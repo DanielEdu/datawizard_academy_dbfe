@@ -4,7 +4,7 @@ Misma spec que `bronze/lending/specs/bronze-ingest.md` (reglas de ingesta, pará
 idempotencia, schema evolution y criterios de aceptación). Solo cambia lo siguiente.
 
 ## Diferencias con lending
-- Job: `job_ingesta_bronze_cobranzas_jhersson`. Schema destino: `cobranzas_jhersson` (`--schema cobranzas_jhersson`),
+- Job: `job_bronze_cobranzas_jhersson_ingest`. Schema destino: `cobranzas_jhersson` (`--schema cobranzas_jhersson`),
   creado por `bundle_ddl` junto con sus tablas (`*_brz_jhersson.sql`).
 - Landing: `s3://lakehouse-datawizard-de/landing/wizard_bank_onp/<carpeta>/` (`--landing_prefix landing/wizard_bank_onp`).
 - YAML de tablas: `config/tablas_cobranzas.yml` (`--config_path config/tablas_cobranzas.yml`).

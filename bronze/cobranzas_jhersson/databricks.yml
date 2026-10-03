@@ -20,7 +20,7 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-ef8efcd7-c7c9.cloud.databricks.com
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
       profile: free-edition
     variables:
       catalog_bronze: bronze
@@ -28,7 +28,7 @@ targets:
   prod:
     mode: production
     workspace:
-      host: https://dbc-ef8efcd7-c7c9.cloud.databricks.com
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
       profile: free-edition
       # Una sola copia del bundle en prod, bajo el usuario que despliega.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

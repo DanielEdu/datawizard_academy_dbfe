@@ -25,12 +25,28 @@ Uid=wizadmin;Pwd=***;Encrypt=yes;TrustServerCertificate=no;"
     # Generar CSVs (no requiere base de datos)
     python generar_datos_wizard_bank.py --destino csv --salida ./datos
 
+    # Delta en CSV (nuevas + actualizadas + casos para Silver), directo a landing
+    python generar_datos_wizard_bank.py --modo delta --destino csv --base ./csv_wizard_bank \
+        --salida ./csv_wizard_bank_delta --seed 7 \
+        --s3 s3://lakehouse-datawizard/landing/wizard_bank_rdb --aws-profile datawizard
+
+    # Casos para Silver (S15/S16): todo delta agrega filas que Silver debe resolver —
+    # inválidas (→ cuarentena) y, en CSV, duplicados en el lote, reenvíos, llegadas
+    # tardías y correcciones de tipos_cambio; además cambios Tipo 1 y Tipo 2 en
+    # clientes y de tasa en productos (SCD2). Ver casos_silver.py; --casos-silver 0
+    # los desactiva.
+
+    # Generar CSVs y subirlos directo a landing en S3 (una carpeta por tabla)
+    python generar_datos_wizard_bank.py --destino csv --sufijo \
+        --s3 s3://lakehouse-datawizard/landing/wizard_bank_rdb --aws-profile datawizard
+
     # Volumen reducido para pruebas rápidas
     python generar_datos_wizard_bank.py --destino csv --clientes 1000
 
 Requisitos:
     pip install pyodbc              (para --destino azuresql)
     pip install psycopg2-binary     (para --destino postgres)
+    pip install "boto3[crt]"       (para --s3; crt lo pide el perfil de `aws login`)
 
 Nota sobre el motor:
     Azure SQL es la fuente principal porque el conector de SQL Server en
@@ -47,6 +63,8 @@ import random
 import sys
 import unicodedata
 from datetime import date, datetime, timedelta
+
+from casos_silver import agregar_casos, ensuciar, escribir_manifiesto, subir_a_s3, ultima_version as version_vigente
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PARÁMETROS DEL FUNNEL
@@ -763,14 +781,16 @@ def actualizar_filas_existentes(dsn, n_updates):
     return len(ids_cliente), len(ids_desembolso)
 
 
-def leer_estado_csv(base):
-    """Equivalente CSV de obtener_max_ids: lee los CSV ya generados en `base`
-    (tabla*.csv, incluidos deltas previos) para continuar IDs y tasas."""
+def leer_estado_csv(carpetas):
+    """Equivalente CSV de obtener_max_ids: lee los CSV ya generados en las
+    `carpetas` (carga inicial + deltas previos) para continuar IDs y tasas."""
     import glob
+    base = carpetas[0]
     filas_por_tabla = {}
-    for tabla in TABLAS_CON_ID:
+    for tabla in [*TABLAS_CON_ID, 'productos_prestamo']:
         filas = []
-        for ruta in sorted(glob.glob(os.path.join(base, f'{tabla}*.csv'))):
+        rutas = sorted(r for c in carpetas for r in glob.glob(os.path.join(c, f'{tabla}*.csv')))
+        for ruta in rutas:
             with open(ruta, newline='', encoding='utf-8') as f:
                 filas.extend(csv.DictReader(f))
         if not filas:
@@ -778,7 +798,8 @@ def leer_estado_csv(base):
                      f'inicial con --modo full --destino csv --salida {base}')
         filas_por_tabla[tabla] = filas
 
-    maximos = {t: max(int(f[c]) for f in filas_por_tabla[t]) for t, c in TABLAS_CON_ID.items()}
+    # Los deltas previos traen filas inválidas a propósito (id vacío): no cuentan para el máximo
+    maximos = {t: max(int(f[c]) for f in filas_por_tabla[t] if f[c]) for t, c in TABLAS_CON_ID.items()}
 
     ultimas_tasas, ultima_fecha = {}, None
     ultima_por_moneda = {}
@@ -792,20 +813,82 @@ def leer_estado_csv(base):
     return maximos, ultimas_tasas, ultima_fecha, filas_por_tabla
 
 
+def ultima_version(filas, campo_id):
+    """Los CSV acumulan versiones de la misma fila (carga inicial + deltas).
+    Devuelve la más reciente por id, según fecha_actualizacion."""
+    vig = {}
+    for f in filas:
+        k = f[campo_id]
+        if k not in vig or (f.get('fecha_actualizacion') or '') > (vig[k].get('fecha_actualizacion') or ''):
+            vig[k] = f
+    return list(vig.values())
+
+
+def dejar_pendientes(solicitudes, desembolsos, proporcion=0.3):
+    """El modo full solo genera solicitudes ya resueltas. En el delta, parte de
+    las solicitudes nuevas que NO tienen desembolso quedan abiertas (Iniciada o
+    En evaluacion); el siguiente delta las hace avanzar. Así cada solicitud deja
+    en Bronze un recorrido de estados, uno por delta."""
+    con_desembolso = {d['id_solicitud'] for d in desembolsos}
+    for s in solicitudes:
+        if s['id_solicitud'] in con_desembolso or random.random() > proporcion:
+            continue
+        s['estado_solicitud'] = random.choice(['Iniciada', 'En evaluacion'])
+        if s['estado_solicitud'] == 'Iniciada':
+            s['score_evaluacion'] = None
+        s.update(decision_motor=None, monto_aprobado=None, tasa_aprobada=None,
+                 motivo_rechazo=None, fecha_hora_resolucion=None)
+
+
+def avanzar_solicitud(s, ahora):
+    """Iniciada → En evaluacion → Aprobada | Rechazada (misma máquina que simulador_cdc.py)."""
+    s = dict(s)
+    if s['estado_solicitud'] == 'Iniciada':
+        s['estado_solicitud'] = 'En evaluacion'
+        s['score_evaluacion'] = random.randint(300, 950)
+    elif random.random() < 0.55:
+        s.update(estado_solicitud='Aprobada', decision_motor='Aprobar',
+                 monto_aprobado=round(float(s['monto_solicitado']) * random.uniform(0.7, 1.0), 2),
+                 tasa_aprobada=round(random.uniform(8.0, 24.0), 3),
+                 fecha_hora_resolucion=ahora.strftime('%Y-%m-%d %H:%M:%S'))
+    else:
+        s.update(estado_solicitud='Rechazada', decision_motor='Rechazar',
+                 motivo_rechazo=elegir(MOTIVOS_RECHAZO, PESO_RECHAZO),
+                 fecha_hora_resolucion=ahora.strftime('%Y-%m-%d %H:%M:%S'))
+    return s
+
+
 def actualizar_filas_csv(filas_por_tabla, n_updates, ahora):
     """Equivalente CSV de actualizar_filas_existentes: devuelve versiones NUEVAS
     de filas ya existentes (mismo id, atributos cambiados, fecha_actualizacion
     = ahora). Es lo que en Silver se resuelve con MERGE / SCD2."""
     clientes = random.sample(filas_por_tabla['clientes'], min(n_updates, len(filas_por_tabla['clientes'])))
-    for c in clientes:
+    clientes = [dict(c) for c in clientes]
+    for i, c in enumerate(clientes):
+        if i % 3 == 2:
+            # Cambio solo Tipo 1 (email/ciudad): dim_clientes lo pisa en la versión vigente, sin abrir otra
+            c['email'] = c['email'].replace('@correo.com', '@nuevocorreo.com')
+            c['ciudad'] = random.choice(CIUDADES[int(c['id_pais'])])
+            continue
+        # Cambio Tipo 2 (ingreso/score/riesgo): dim_clientes abre una versión nueva
         c['ingreso_mensual_declarado'] = round(random.uniform(1_100, 12_000_000), 2)
         c['score_interno'] = int(max(300, min(1000, random.gauss(650, 100))))
         c['nivel_riesgo'] = nivel_riesgo_desde_score(c['score_interno'])
     completados = [d for d in filas_por_tabla['desembolsos'] if d['estado_desembolso'] == 'Completado']
-    desembolsos = random.sample(completados, min(max(1, n_updates // 5), len(completados)))
+    desembolsos = [dict(d) for d in random.sample(completados, min(max(1, n_updates // 5), len(completados)))]
     for d in desembolsos:
         d['estado_desembolso'] = 'Reversado'
-    salida = {'clientes': clientes, 'desembolsos': desembolsos}
+    # Solicitudes abiertas de deltas anteriores: avanzan un paso
+    vigentes = ultima_version(filas_por_tabla['solicitudes_prestamo'], 'id_solicitud')
+    solicitudes = [avanzar_solicitud(s, ahora) for s in vigentes
+                   if s['estado_solicitud'] in ('Iniciada', 'En evaluacion')]
+    # Cambio de tasa en 2 productos: dim_productos (SCD2) abre una versión nueva
+    productos = [dict(p) for p in random.sample(version_vigente(filas_por_tabla['productos_prestamo'], ['id_producto'],
+                                                                 'fecha_actualizacion'), 2)]
+    for p in productos:
+        p['tasa_interes_anual'] = round(float(p['tasa_interes_anual']) + random.choice([-1.5, -0.5, 0.5, 1.5]), 3)
+    salida = {'clientes': clientes, 'desembolsos': desembolsos, 'solicitudes_prestamo': solicitudes,
+              'productos_prestamo': productos}
     for tabla, filas in salida.items():
         for f in filas:
             if 'fecha_creacion' not in f:
@@ -814,10 +897,63 @@ def actualizar_filas_csv(filas_por_tabla, n_updates, ahora):
     return salida
 
 
-def escribir_csv_delta(datos_nuevos, actualizados, salida, ahora):
-    """Un CSV por tabla con las filas nuevas + las versiones actualizadas.
-    Todas llevan fecha_actualizacion = ahora (la cursor column del incremental)."""
+def _sumar(f, col, factor):
+    f[col] = round(float(f[col]) * factor, 6)
+
+
+# Reglas de silver.lending (las de config/silver_lending.yml) y cómo romperlas, por tabla.
+# respaldo: columnas de orden alternativas si la fila no trae fecha_actualizacion.
+CASOS = {
+    'clientes': {
+        'clave': ['id_cliente'], 'orden': 'fecha_actualizacion', 'patron': 'upsert',
+        'respaldo': ['fecha_creacion', 'fecha_registro'],
+        'reglas': [('clave', lambda f: f.update(id_cliente=''))],
+        'mutar': lambda f: f.update(score_interno=300, nivel_riesgo=nivel_riesgo_desde_score(300)),
+    },
+    'productos_prestamo': {
+        'clave': ['id_producto'], 'orden': 'fecha_actualizacion', 'patron': 'upsert',
+        'respaldo': ['fecha_creacion'],
+        'reglas': [],
+        'mutar': lambda f: _sumar(f, 'tasa_interes_anual', 0.5),
+    },
+    'ofertas_preaprobadas': {
+        'clave': ['id_oferta'], 'orden': 'fecha_actualizacion', 'patron': 'upsert',
+        'respaldo': ['fecha_creacion', 'fecha_generacion'],
+        'reglas': [('monto_positivo', lambda f: f.update(monto_ofertado=0)),
+                   ('clave',          lambda f: f.update(id_oferta=''))],
+        'mutar': lambda f: f.update(estado_oferta='Vigente'),
+    },
+    'solicitudes_prestamo': {
+        'clave': ['id_solicitud'], 'orden': 'fecha_actualizacion', 'patron': 'upsert',
+        'respaldo': ['fecha_creacion', 'fecha_hora_solicitud'],
+        'reglas': [('monto_positivo', lambda f: f.update(monto_solicitado=-abs(float(f['monto_solicitado'])))),
+                   ('estado_valido',  lambda f: f.update(estado_solicitud='APROBADO')),
+                   ('clave',          lambda f: f.update(id_cliente=''))],
+        'mutar': lambda f: f.update(estado_solicitud='En evaluacion'),
+    },
+    'desembolsos': {
+        'clave': ['id_desembolso'], 'orden': 'fecha_actualizacion', 'patron': 'upsert',
+        'respaldo': ['fecha_creacion', 'fecha_hora_desembolso'],
+        'reglas': [('monto_positivo', lambda f: f.update(monto_desembolsado=0)),
+                   ('clave',          lambda f: f.update(id_desembolso=''))],
+        'mutar': lambda f: f.update(estado_desembolso='Completado'),
+    },
+    'tipos_cambio': {
+        # El proveedor corrige reenviando la misma (fecha, moneda): gana el último archivo
+        'clave': ['fecha', 'moneda_origen', 'moneda_destino'], 'orden': 'fecha_actualizacion',
+        'patron': 'ultimo_archivo',
+        'reglas': [('tasas_validas', lambda f: f.update(tasa_venta=round(float(f['tasa_compra']) * 0.9, 6)))],
+        'mutar': lambda f: (_sumar(f, 'tasa_compra', 1.002), _sumar(f, 'tasa_venta', 1.002)),
+    },
+}
+
+
+def escribir_csv_delta(datos_nuevos, actualizados, salida, ahora, base_filas=None, n_casos=0):
+    """Un CSV por tabla con las filas nuevas + las versiones actualizadas + los casos
+    de Silver (ver casos_silver.py), y el manifiesto local casos_silver_<sufijo>.csv.
+    Las nuevas y actualizadas llevan fecha_actualizacion = ahora (la cursor column)."""
     os.makedirs(salida, exist_ok=True)
+    escritos, manifiesto = [], []
     sufijo = ahora.strftime('%Y%m%d_%H%M%S')
     ts = ahora.strftime('%Y-%m-%d %H:%M:%S')
     for tabla in ORDEN_CARGA:
@@ -827,12 +963,21 @@ def escribir_csv_delta(datos_nuevos, actualizados, salida, ahora):
         filas = nuevas + cambiadas
         if not filas:
             continue
+        n_base = len(filas)
+        if tabla in CASOS and base_filas and base_filas.get(tabla):
+            cfg = CASOS[tabla]
+            vigentes = version_vigente(base_filas[tabla], cfg['clave'], cfg['orden'])
+            filas = agregar_casos(tabla, filas, vigentes, cfg, n_casos, ahora, manifiesto)
         ruta = os.path.join(salida, f'{tabla}_delta_{sufijo}.csv')
         with open(ruta, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=list(filas[0].keys()))
+            writer = csv.DictWriter(f, fieldnames=list(filas[0].keys()), extrasaction='ignore')
             writer.writeheader()
             writer.writerows(filas)
-        print(f'  ✅ {tabla:<24} {len(nuevas):>7,} nuevas + {len(cambiadas):>4,} actualizadas  →  {ruta}')
+        print(f'  ✅ {tabla:<24} {len(nuevas):>7,} nuevas + {len(cambiadas):>4,} actualizadas'
+              f' + {len(filas) - n_base:>3,} casos  →  {ruta}')
+        escritos.append((tabla, ruta))
+    escribir_manifiesto(manifiesto, salida, sufijo)
+    return escritos
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -889,6 +1034,7 @@ def agregar_auditoria(tabla, filas):
 
 def escribir_csv(datos, salida, sufijo=''):
     os.makedirs(salida, exist_ok=True)
+    escritos = []
     for tabla in ORDEN_CARGA:
         filas = agregar_auditoria(tabla, datos[tabla])
         ruta = os.path.join(salida, f'{tabla}{sufijo}.csv')
@@ -897,6 +1043,8 @@ def escribir_csv(datos, salida, sufijo=''):
             writer.writeheader()
             writer.writerows(filas)
         print(f'  ✅ {tabla:<24} {len(filas):>9,} filas  →  {ruta}')
+        escritos.append((tabla, ruta))
+    return escritos
 
 
 def escribir_azuresql(datos, dsn, truncar):
@@ -1095,6 +1243,12 @@ def main():
                     help='Sufijo para el nombre de los CSV (tabla_<sufijo>.csv). Sin valor usa '
                          'la fecha-hora actual (AAAAMMDD_HHMMSS). Sirve para dejar en landing '
                          'archivos "nuevos": Auto Loader ignora nombres que ya leyó.')
+    ap.add_argument('--s3', default=os.getenv('WIZARD_BANK_S3'),
+                    help='Con --destino csv: además sube los CSV a este prefijo de S3, una carpeta '
+                         'por tabla (p. ej. s3://lakehouse-datawizard/landing/wizard_bank_rdb). '
+                         'También por variable WIZARD_BANK_S3.')
+    ap.add_argument('--aws-profile', default=os.getenv('AWS_PROFILE'),
+                    help='Perfil de la AWS CLI para --s3 (default: AWS_PROFILE o credenciales por defecto)')
     ap.add_argument('--base', default='./datos_wizard_bank',
                     help='--modo delta --destino csv: carpeta con los CSV de la carga inicial '
                          '(de ahí toma los IDs máximos y las filas a actualizar)')
@@ -1110,6 +1264,9 @@ def main():
     ap.add_argument('--updates-delta', type=int, default=N_UPDATES_DELTA_DEFAULT,
                     help=f'--modo delta: cuántos clientes/desembolsos existentes modificar '
                          f'para simular cambios reales (default: {N_UPDATES_DELTA_DEFAULT}, 0 para omitir)')
+    ap.add_argument('--casos-silver', type=int, default=5,
+                    help='--modo delta: filas por caso de Silver y tabla (inválidas, duplicados, reenvíos, '
+                         'llegadas tardías, correcciones; ver casos_silver.py). 0 = delta limpio. Default: 5')
     ap.add_argument('--truncar', action='store_true',
                     help='--modo full: vaciar las tablas antes de insertar (azuresql | postgres)')
     ap.add_argument('--seed', type=int, default=SEED,
@@ -1122,6 +1279,9 @@ def main():
         sys.exit(f'ERROR: --destino {args.destino} requiere --dsn '
                  f'o la variable de entorno WIZARD_BANK_DSN')
 
+    if args.s3 and args.destino != 'csv':
+        sys.exit('ERROR: --s3 solo aplica con --destino csv')
+
     if args.modo == 'delta' and args.destino not in ('azuresql', 'csv'):
         sys.exit('ERROR: --modo delta solo soporta --destino azuresql o csv '
                   '(necesita leer el estado actual: la base, o los CSV de --base)')
@@ -1133,17 +1293,23 @@ def main():
         print('═' * 66)
         print('  WIZARD BANK · Delta CSV — filas nuevas + actualizadas')
         print('═' * 66)
-        maximos, ultimas_tasas, ultima_fecha, base_filas = leer_estado_csv(args.base)
+        maximos, ultimas_tasas, ultima_fecha, base_filas = leer_estado_csv([args.base, args.salida])
         for tabla, campo in TABLAS_CON_ID.items():
             print(f'  {tabla:<22} max {campo} = {maximos[tabla]:,}')
         print('\n── Generando delta ──────────────────────────────────────────')
         datos = generar_delta(args.clientes_delta, args.dias_delta,
                                maximos, ultimas_tasas, ultima_fecha)
+        dejar_pendientes(datos['solicitudes_prestamo'], datos['desembolsos'])
         actualizados = actualizar_filas_csv(base_filas, args.updates_delta, ahora) \
             if args.updates_delta > 0 else {}
         print('\n── Escribiendo (csv) ────────────────────────────────────────')
-        escribir_csv_delta(datos, actualizados, args.salida, ahora)
-        print('\n✅ Delta listo — sube estos archivos a landing y vuelve a correr la ingesta.\n')
+        escritos = escribir_csv_delta(datos, actualizados, args.salida, ahora, base_filas, args.casos_silver)
+        if args.s3:
+            print('\n── Subiendo a S3 ────────────────────────────────────────────')
+            subir_a_s3(escritos, args.s3, args.aws_profile)
+            print('\n✅ Delta listo y en landing — vuelve a correr la ingesta.\n')
+        else:
+            print('\n✅ Delta listo — sube estos archivos a landing (o usa --s3) y vuelve a correr la ingesta.\n')
         return
 
     if args.modo == 'delta':
@@ -1164,6 +1330,12 @@ def main():
         for tabla in ('clientes', 'ofertas_preaprobadas', 'solicitudes_prestamo',
                       'desembolsos', 'tipos_cambio'):
             print(f'  {tabla:<22} {len(datos[tabla]):>9,} filas nuevas')
+
+        # En la base no hay duplicados ni llegadas tardías (nacen al mover archivos);
+        # sí filas que rompen reglas de Silver. Sin la regla de clave: la base exige la PK/FK.
+        n_inv = sum(len(ensuciar(datos[t], [r for r in CASOS[t]['reglas'] if r[0] != 'clave'],
+                                 args.casos_silver)) for t in ('solicitudes_prestamo', 'tipos_cambio'))
+        print(f'  🧪 filas inválidas para Silver: {n_inv}')
 
         print('\n── Escribiendo (azuresql) ───────────────────────────────────')
         escribir_azuresql(datos, args.dsn, truncar=False)
@@ -1219,7 +1391,10 @@ def main():
         sufijo = args.sufijo
         if sufijo == 'auto':
             sufijo = datetime.now().strftime('%Y%m%d_%H%M%S')
-        escribir_csv(datos, args.salida, f'_{sufijo}' if sufijo else '')
+        escritos = escribir_csv(datos, args.salida, f'_{sufijo}' if sufijo else '')
+        if args.s3:
+            print('\n── Subiendo a S3 ────────────────────────────────────────────')
+            subir_a_s3(escritos, args.s3, args.aws_profile)
     elif args.destino == 'azuresql':
         escribir_azuresql(datos, args.dsn, args.truncar)
     else:

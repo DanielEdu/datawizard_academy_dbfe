@@ -1,7 +1,7 @@
 # Spec: bundle_ingesta — Ingesta S3 → Bronze con Auto Loader (Wizard Bank RDB)
 
 ## Objetivo
-Un Declarative Automation Bundle con un job, `job_ingesta_bronze_s3`, que ejecute un
+Un Declarative Automation Bundle con un job, `job_bronze_lending_ingest`, que ejecute un
 script Python (`main.py`, no un notebook) para ingestar con Auto Loader los archivos de
 landing en S3 hacia las tablas Bronze `bronze.lending.<tabla>_brz`, ya creadas por
 `bundle_ddl`. Todo parametrizado, modular y idempotente.
@@ -27,7 +27,7 @@ landing en S3 hacia las tablas Bronze `bronze.lending.<tabla>_brz`, ya creadas p
 ```
 lending/
 ├── databricks.yml
-├── resources/job_ingesta_bronze_s3.yml
+├── resources/job_bronze_lending_ingest.yml
 ├── config/
 │   └── tablas_lending.yml        # una entrada por tabla
 └── src/
@@ -118,8 +118,8 @@ Nada de rutas, catálogos ni nombres de tabla escritos a mano dentro del código
 
 ## Criterios de aceptación
 1. `databricks bundle validate -t dev --profile <profile>` termina sin errores.
-2. `databricks bundle deploy -t dev` crea el job `job_ingesta_bronze_s3`.
-3. `databricks bundle run job_ingesta_bronze_s3 -t dev` termina en SUCCESS, con un resumen
+2. `databricks bundle deploy -t dev` crea el job `job_bronze_lending_ingest`.
+3. `databricks bundle run job_bronze_lending_ingest -t dev` termina en SUCCESS, con un resumen
    de 7 tablas ok y `productos_prestamo` omitida.
 4. **Schema calza:** para cada tabla ingerida, las columnas de negocio de
    `DESCRIBE bronze.lending.<tabla>_brz` coinciden en nombre y orden con el header del CSV,
