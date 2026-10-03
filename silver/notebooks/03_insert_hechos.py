@@ -18,12 +18,64 @@ CONFIG = {
         "orden": ["fecha_modificacion", "fecha_creacion", "fecha_pago"],
         "reglas": {"clave": "id_pago IS NOT NULL",
                    "monto_positivo": "monto_pagado > 0"},
+        # Tipar: los tipos del DDL de silver.cobranzas.pagos
+        "columnas": [
+            "try_cast(id_pago AS BIGINT) AS id_pago",
+            "try_cast(numero_credito AS BIGINT) AS numero_credito",
+            "try_cast(numero_cuota AS SMALLINT) AS numero_cuota",
+            "try_cast(fecha_pago AS TIMESTAMP) AS fecha_pago",
+            "try_cast(monto_pagado AS DECIMAL(12,2)) AS monto_pagado",
+            "try_cast(medio_pago AS STRING) AS medio_pago",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_modificacion AS TIMESTAMP) AS fecha_modificacion",
+        ],
+        # MERGE: condición y valores columna por columna
+        "condicion": "t.id_pago = s.id_pago",
+        "valores": {
+            "id_pago": "s.id_pago",
+            "numero_credito": "s.numero_credito",
+            "numero_cuota": "s.numero_cuota",
+            "fecha_pago": "s.fecha_pago",
+            "monto_pagado": "s.monto_pagado",
+            "medio_pago": "s.medio_pago",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_modificacion": "s.fecha_modificacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "gestiones_cobranza": {
         "clave": ["id_gestion"],
         "orden": ["fecha_modificacion", "fecha_creacion", "fecha_gestion"],
         "reglas": {"clave": "id_gestion IS NOT NULL",
                    "dias_mora_no_negativos": "dias_mora_al_momento >= 0"},
+        "columnas": [
+            "try_cast(id_gestion AS BIGINT) AS id_gestion",
+            "try_cast(numero_credito AS BIGINT) AS numero_credito",
+            "try_cast(fecha_gestion AS TIMESTAMP) AS fecha_gestion",
+            "try_cast(tipo_gestion AS STRING) AS tipo_gestion",
+            "try_cast(resultado AS STRING) AS resultado",
+            "try_cast(dias_mora_al_momento AS SMALLINT) AS dias_mora_al_momento",
+            "try_cast(gestor AS STRING) AS gestor",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_modificacion AS TIMESTAMP) AS fecha_modificacion",
+        ],
+        "condicion": "t.id_gestion = s.id_gestion",
+        "valores": {
+            "id_gestion": "s.id_gestion",
+            "numero_credito": "s.numero_credito",
+            "fecha_gestion": "s.fecha_gestion",
+            "tipo_gestion": "s.tipo_gestion",
+            "resultado": "s.resultado",
+            "dias_mora_al_momento": "s.dias_mora_al_momento",
+            "gestor": "s.gestor",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_modificacion": "s.fecha_modificacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
 }
 
@@ -66,16 +118,11 @@ from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-TECNICAS = ["_origen_archivo", "_bronze_ingestion_ts", "_procesado_ts"]
-
-
-def tipar(lote, schema_destino):
-    columnas = [F.expr(f"try_cast(`{f.name}` AS {f.dataType.simpleString()})").alias(f.name)
-                for f in schema_destino if f.name not in TECNICAS and f.name in lote.columns]
-    return lote.select(*columnas,
-                       F.col("_metadata.file_path").alias("_origen_archivo"),
-                       F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
-                       F.current_timestamp().alias("_procesado_ts"))
+def tipar(lote, columnas):
+    return lote.selectExpr(*columnas,
+                           "_metadata.file_path AS _origen_archivo",
+                           "_ingestion_ts AS _bronze_ingestion_ts",
+                           "current_timestamp() AS _procesado_ts")
 
 
 def separar_invalidas(df, reglas):
@@ -87,7 +134,7 @@ def separar_invalidas(df, reglas):
 def enviar_a_cuarentena(invalidas, batch_id):
     (invalidas.select(F.lit(tabla).alias("tabla"),
                       F.array_join("_motivos", ", ").alias("motivos"),
-                      F.to_json(F.struct(*[c for c in invalidas.columns if c != "_motivos"])).alias("fila"),
+                      F.to_json(F.struct(*invalidas.drop("_motivos").columns)).alias("fila"),
                       "_origen_archivo", F.lit(batch_id).alias("_batch_id"),
                       F.current_timestamp().alias("_procesado_ts"))
      .write.mode("append").saveAsTable(cuarentena))
@@ -95,24 +142,23 @@ def enviar_a_cuarentena(invalidas, batch_id):
 
 def primera_version(df, clave, orden):
     """Una fila por clave: la PRIMERA que llegó. La columna de orden queda siempre llena (NOT NULL)."""
-    df = df.withColumn(orden[0], F.coalesce(*[F.col(c).cast("timestamp") for c in orden if c in df.columns]))
+    df = df.withColumn(orden[0], F.coalesce(*orden))
     w = Window.partitionBy(*clave).orderBy(F.col("_bronze_ingestion_ts").asc(), F.col(orden[0]).asc())
     return df.withColumn("_rn", F.row_number().over(w)).filter("_rn = 1").drop("_rn")
 
 
-def insertar_nuevos(df, clave):
+def insertar_nuevos(df, condicion, valores):
     """Insert-only: sin WHEN MATCHED. Lo que ya existe no se toca."""
-    valores = {c: f"s.{c}" for c in df.columns}
     (DeltaTable.forName(spark, destino).alias("t")
-        .merge(df.alias("s"), " AND ".join(f"t.{c} = s.{c}" for c in clave))
+        .merge(df.alias("s"), condicion)
         .whenNotMatchedInsert(values=valores)
         .execute())
 
 
 def procesar_lote(lote, batch_id):
-    validas, invalidas = separar_invalidas(tipar(lote, spark.table(destino).schema), cfg["reglas"])
+    validas, invalidas = separar_invalidas(tipar(lote, cfg["columnas"]), cfg["reglas"])
     enviar_a_cuarentena(invalidas, batch_id)
-    insertar_nuevos(primera_version(validas, cfg["clave"], cfg["orden"]), cfg["clave"])
+    insertar_nuevos(primera_version(validas, cfg["clave"], cfg["orden"]), cfg["condicion"], cfg["valores"])
 
 # COMMAND ----------
 

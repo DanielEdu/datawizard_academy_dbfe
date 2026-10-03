@@ -21,7 +21,9 @@
 # MAGIC ## 1. Parámetros y configuración de la tabla
 # MAGIC
 # MAGIC Cada tabla se describe con: **clave** (qué identifica la fila), **orden** (qué columna dice cuál
-# MAGIC versión es más nueva; si viene vacía se usa la siguiente) y **reglas** de calidad (SQL que debe ser verdadero).
+# MAGIC versión es más nueva; si viene vacía se usa la siguiente), **reglas** de calidad (SQL que debe ser verdadero),
+# MAGIC **columnas** (el `try_cast` de cada columna al tipo del DDL) y la **condición** y los **valores** del MERGE,
+# MAGIC escritos columna por columna.
 
 # COMMAND ----------
 
@@ -31,17 +33,99 @@ CONFIG = {
         "orden": ["fecha_actualizacion", "fecha_creacion"],
         "reglas": {"clave": "id_pais IS NOT NULL",
                    "iso_valido": "codigo_iso RLIKE '^[A-Z]{2}$'"},
+        # Paso 1 · los tipos del DDL de Silver
+        "columnas": [
+            "try_cast(id_pais AS SMALLINT) AS id_pais",
+            "try_cast(codigo_iso AS STRING) AS codigo_iso",
+            "try_cast(nombre_pais AS STRING) AS nombre_pais",
+            "try_cast(moneda_codigo AS STRING) AS moneda_codigo",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        ],
+        # Paso 4 · MERGE: condición y valores columna por columna
+        "condicion": "t.id_pais = s.id_pais",
+        "valores": {
+            "id_pais": "s.id_pais",
+            "codigo_iso": "s.codigo_iso",
+            "nombre_pais": "s.nombre_pais",
+            "moneda_codigo": "s.moneda_codigo",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "campanias": {
         "schema": "lending", "clave": ["id_campania"],
         "orden": ["fecha_actualizacion", "fecha_creacion", "fecha_inicio"],
         "reglas": {"clave": "id_campania IS NOT NULL"},
+        "columnas": [
+            "try_cast(id_campania AS INT) AS id_campania",
+            "try_cast(id_pais AS SMALLINT) AS id_pais",
+            "try_cast(nombre_campania AS STRING) AS nombre_campania",
+            "try_cast(tipo_campania AS STRING) AS tipo_campania",
+            "try_cast(fecha_inicio AS DATE) AS fecha_inicio",
+            "try_cast(fecha_fin AS DATE) AS fecha_fin",
+            "try_cast(presupuesto AS DECIMAL(14,2)) AS presupuesto",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        ],
+        "condicion": "t.id_campania = s.id_campania",
+        "valores": {
+            "id_campania": "s.id_campania",
+            "id_pais": "s.id_pais",
+            "nombre_campania": "s.nombre_campania",
+            "tipo_campania": "s.tipo_campania",
+            "fecha_inicio": "s.fecha_inicio",
+            "fecha_fin": "s.fecha_fin",
+            "presupuesto": "s.presupuesto",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "ofertas_preaprobadas": {
         "schema": "lending", "clave": ["id_oferta"],
         "orden": ["fecha_actualizacion", "fecha_creacion", "fecha_generacion"],
         "reglas": {"clave": "id_oferta IS NOT NULL AND id_cliente IS NOT NULL",
                    "monto_positivo": "monto_ofertado > 0"},
+        "columnas": [
+            "try_cast(id_oferta AS BIGINT) AS id_oferta",
+            "try_cast(id_cliente AS BIGINT) AS id_cliente",
+            "try_cast(id_producto AS INT) AS id_producto",
+            "try_cast(id_campania AS INT) AS id_campania",
+            "try_cast(monto_ofertado AS DECIMAL(14,2)) AS monto_ofertado",
+            "try_cast(plazo_meses_ofertado AS SMALLINT) AS plazo_meses_ofertado",
+            "try_cast(tasa_ofertada AS DECIMAL(6,3)) AS tasa_ofertada",
+            "try_cast(motor_asignacion AS STRING) AS motor_asignacion",
+            "try_cast(fecha_generacion AS TIMESTAMP) AS fecha_generacion",
+            "try_cast(fecha_vigencia_fin AS DATE) AS fecha_vigencia_fin",
+            "try_cast(estado_oferta AS STRING) AS estado_oferta",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        ],
+        "condicion": "t.id_oferta = s.id_oferta",
+        "valores": {
+            "id_oferta": "s.id_oferta",
+            "id_cliente": "s.id_cliente",
+            "id_producto": "s.id_producto",
+            "id_campania": "s.id_campania",
+            "monto_ofertado": "s.monto_ofertado",
+            "plazo_meses_ofertado": "s.plazo_meses_ofertado",
+            "tasa_ofertada": "s.tasa_ofertada",
+            "motor_asignacion": "s.motor_asignacion",
+            "fecha_generacion": "s.fecha_generacion",
+            "fecha_vigencia_fin": "s.fecha_vigencia_fin",
+            "estado_oferta": "s.estado_oferta",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "solicitudes_prestamo": {
         "schema": "lending", "clave": ["id_solicitud"],
@@ -49,12 +133,90 @@ CONFIG = {
         "reglas": {"clave": "id_solicitud IS NOT NULL AND id_cliente IS NOT NULL",
                    "monto_positivo": "monto_solicitado > 0",
                    "estado_valido": "estado_solicitud IN ('Iniciada','En evaluacion','Aprobada','Rechazada','Desistida')"},
+        "columnas": [
+            "try_cast(id_solicitud AS BIGINT) AS id_solicitud",
+            "try_cast(id_oferta AS BIGINT) AS id_oferta",
+            "try_cast(id_cliente AS BIGINT) AS id_cliente",
+            "try_cast(id_producto AS INT) AS id_producto",
+            "try_cast(canal AS STRING) AS canal",
+            "try_cast(monto_solicitado AS DECIMAL(14,2)) AS monto_solicitado",
+            "try_cast(plazo_meses_solicitado AS SMALLINT) AS plazo_meses_solicitado",
+            "try_cast(fecha_hora_solicitud AS TIMESTAMP) AS fecha_hora_solicitud",
+            "try_cast(estado_solicitud AS STRING) AS estado_solicitud",
+            "try_cast(score_evaluacion AS SMALLINT) AS score_evaluacion",
+            "try_cast(decision_motor AS STRING) AS decision_motor",
+            "try_cast(monto_aprobado AS DECIMAL(14,2)) AS monto_aprobado",
+            "try_cast(tasa_aprobada AS DECIMAL(6,3)) AS tasa_aprobada",
+            "try_cast(motivo_rechazo AS STRING) AS motivo_rechazo",
+            "try_cast(fecha_hora_resolucion AS TIMESTAMP) AS fecha_hora_resolucion",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        ],
+        "condicion": "t.id_solicitud = s.id_solicitud",
+        "valores": {
+            "id_solicitud": "s.id_solicitud",
+            "id_oferta": "s.id_oferta",
+            "id_cliente": "s.id_cliente",
+            "id_producto": "s.id_producto",
+            "canal": "s.canal",
+            "monto_solicitado": "s.monto_solicitado",
+            "plazo_meses_solicitado": "s.plazo_meses_solicitado",
+            "fecha_hora_solicitud": "s.fecha_hora_solicitud",
+            "estado_solicitud": "s.estado_solicitud",
+            "score_evaluacion": "s.score_evaluacion",
+            "decision_motor": "s.decision_motor",
+            "monto_aprobado": "s.monto_aprobado",
+            "tasa_aprobada": "s.tasa_aprobada",
+            "motivo_rechazo": "s.motivo_rechazo",
+            "fecha_hora_resolucion": "s.fecha_hora_resolucion",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "desembolsos": {
         "schema": "lending", "clave": ["id_desembolso"],
         "orden": ["fecha_actualizacion", "fecha_creacion", "fecha_hora_desembolso"],
         "reglas": {"clave": "id_desembolso IS NOT NULL",
                    "monto_positivo": "monto_desembolsado > 0"},
+        "columnas": [
+            "try_cast(id_desembolso AS BIGINT) AS id_desembolso",
+            "try_cast(id_solicitud AS BIGINT) AS id_solicitud",
+            "try_cast(id_cliente AS BIGINT) AS id_cliente",
+            "try_cast(monto_desembolsado AS DECIMAL(14,2)) AS monto_desembolsado",
+            "try_cast(moneda AS STRING) AS moneda",
+            "try_cast(tasa_aplicada AS DECIMAL(6,3)) AS tasa_aplicada",
+            "try_cast(plazo_meses AS SMALLINT) AS plazo_meses",
+            "try_cast(comision_cobrada AS DECIMAL(12,2)) AS comision_cobrada",
+            "try_cast(cuenta_destino_masked AS STRING) AS cuenta_destino_masked",
+            "try_cast(fecha_hora_desembolso AS TIMESTAMP) AS fecha_hora_desembolso",
+            "try_cast(estado_desembolso AS STRING) AS estado_desembolso",
+            "try_cast(referencia_bancaria AS STRING) AS referencia_bancaria",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_actualizacion AS TIMESTAMP) AS fecha_actualizacion",
+        ],
+        "condicion": "t.id_desembolso = s.id_desembolso",
+        "valores": {
+            "id_desembolso": "s.id_desembolso",
+            "id_solicitud": "s.id_solicitud",
+            "id_cliente": "s.id_cliente",
+            "monto_desembolsado": "s.monto_desembolsado",
+            "moneda": "s.moneda",
+            "tasa_aplicada": "s.tasa_aplicada",
+            "plazo_meses": "s.plazo_meses",
+            "comision_cobrada": "s.comision_cobrada",
+            "cuenta_destino_masked": "s.cuenta_destino_masked",
+            "fecha_hora_desembolso": "s.fecha_hora_desembolso",
+            "estado_desembolso": "s.estado_desembolso",
+            "referencia_bancaria": "s.referencia_bancaria",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_actualizacion": "s.fecha_actualizacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
     "cuotas": {
         "schema": "cobranzas", "clave": ["id_cuota"],
@@ -62,6 +224,34 @@ CONFIG = {
         "reglas": {"clave": "id_cuota IS NOT NULL",
                    "estado_valido": "estado_cuota IN ('Pendiente','Pagada','Vencida')",
                    "cuota_cuadra": "abs(monto_cuota - (monto_capital + monto_interes)) <= 0.01"},
+        "columnas": [
+            "try_cast(id_cuota AS BIGINT) AS id_cuota",
+            "try_cast(numero_credito AS BIGINT) AS numero_credito",
+            "try_cast(numero_cuota AS SMALLINT) AS numero_cuota",
+            "try_cast(fecha_vencimiento AS DATE) AS fecha_vencimiento",
+            "try_cast(monto_cuota AS DECIMAL(12,2)) AS monto_cuota",
+            "try_cast(monto_capital AS DECIMAL(12,2)) AS monto_capital",
+            "try_cast(monto_interes AS DECIMAL(12,2)) AS monto_interes",
+            "try_cast(estado_cuota AS STRING) AS estado_cuota",
+            "try_cast(fecha_creacion AS TIMESTAMP) AS fecha_creacion",
+            "try_cast(fecha_modificacion AS TIMESTAMP) AS fecha_modificacion",
+        ],
+        "condicion": "t.id_cuota = s.id_cuota",
+        "valores": {
+            "id_cuota": "s.id_cuota",
+            "numero_credito": "s.numero_credito",
+            "numero_cuota": "s.numero_cuota",
+            "fecha_vencimiento": "s.fecha_vencimiento",
+            "monto_cuota": "s.monto_cuota",
+            "monto_capital": "s.monto_capital",
+            "monto_interes": "s.monto_interes",
+            "estado_cuota": "s.estado_cuota",
+            "fecha_creacion": "s.fecha_creacion",
+            "fecha_modificacion": "s.fecha_modificacion",
+            "_origen_archivo": "s._origen_archivo",
+            "_bronze_ingestion_ts": "s._bronze_ingestion_ts",
+            "_procesado_ts": "s._procesado_ts",
+        },
     },
 }
 
@@ -134,19 +324,14 @@ from delta.tables import DeltaTable
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-TECNICAS = ["_origen_archivo", "_bronze_ingestion_ts", "_procesado_ts"]
-
-
-def tipar(lote, schema_destino):
-    """Paso 1 · Castea cada columna al tipo del DDL de Silver.
+def tipar(lote, columnas):
+    """Paso 1 · Castea cada columna al tipo del DDL de Silver (lista "columnas" de CONFIG).
     try_cast da NULL si un valor no convierte, en vez de romper el lote."""
-    columnas = [F.expr(f"try_cast(`{f.name}` AS {f.dataType.simpleString()})").alias(f.name)
-                for f in schema_destino if f.name not in TECNICAS and f.name in lote.columns]
-    return lote.select(
+    return lote.selectExpr(
         *columnas,
-        F.col("_metadata.file_path").alias("_origen_archivo"),
-        F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
-        F.current_timestamp().alias("_procesado_ts"),
+        "_metadata.file_path AS _origen_archivo",
+        "_ingestion_ts AS _bronze_ingestion_ts",
+        "current_timestamp() AS _procesado_ts",
     )
 
 
@@ -164,7 +349,7 @@ def enviar_a_cuarentena(invalidas, batch_id):
     (invalidas.select(
         F.lit(tabla).alias("tabla"),
         F.array_join("_motivos", ", ").alias("motivos"),
-        F.to_json(F.struct(*[c for c in invalidas.columns if c != "_motivos"])).alias("fila"),
+        F.to_json(F.struct(*invalidas.drop("_motivos").columns)).alias("fila"),
         "_origen_archivo",
         F.lit(batch_id).alias("_batch_id"),
         F.current_timestamp().alias("_procesado_ts"))
@@ -174,21 +359,18 @@ def enviar_a_cuarentena(invalidas, batch_id):
 def ultima_version(df, clave, orden):
     """Paso 3 · Una fila por clave: la de mayor orden (si empatan, la última ingestada).
     Sin esto el MERGE falla: dos filas del lote coincidirían con la misma fila destino."""
-    orden = [c for c in orden if c in df.columns]
-    df = df.withColumn("_orden", F.coalesce(*[F.col(c).cast("timestamp") for c in orden],
-                                            F.col("_bronze_ingestion_ts")))
+    df = df.withColumn("_orden", F.coalesce(*orden, "_bronze_ingestion_ts"))
     w = Window.partitionBy(*clave).orderBy(F.col("_orden").desc(), F.col("_bronze_ingestion_ts").desc())
     return (df.withColumn("_rn", F.row_number().over(w)).filter("_rn = 1")
               .withColumn(orden[0], F.col("_orden"))   # la columna de orden queda siempre llena
               .drop("_rn", "_orden"))
 
 
-def mergear(df, clave, columna_orden):
-    """Paso 4 · MERGE idempotente con guarda: una versión vieja que llega tarde no pisa a una nueva."""
-    cond = " AND ".join(f"t.{c} = s.{c}" for c in clave)
-    valores = {c: f"s.{c}" for c in df.columns}
+def mergear(df, condicion, valores, columna_orden):
+    """Paso 4 · MERGE idempotente con guarda: una versión vieja que llega tarde no pisa a una nueva.
+    condicion y valores vienen de CONFIG, escritos columna por columna."""
     (DeltaTable.forName(spark, destino).alias("t")
-        .merge(df.alias("s"), cond)
+        .merge(df.alias("s"), condicion)
         .whenMatchedUpdate(condition=f"s.{columna_orden} > t.{columna_orden}", set=valores)
         .whenNotMatchedInsert(values=valores)
         .execute())
@@ -201,7 +383,7 @@ def mergear(df, clave, columna_orden):
 # COMMAND ----------
 
 muestra = spark.table(origen).limit(2000)
-tipado = tipar(muestra, spark.table(destino).schema)
+tipado = tipar(muestra, cfg["columnas"])
 validas, invalidas = separar_invalidas(tipado, cfg["reglas"])
 print(f"Muestra: {muestra.count()} · válidas: {validas.count()} · inválidas: {invalidas.count()}")
 display(tipado.limit(5))   # ya con tipos reales
@@ -223,9 +405,10 @@ display(invalidas.select("_motivos", *cfg["clave"]).limit(20))
 # COMMAND ----------
 
 def procesar_lote(lote, batch_id):
-    validas, invalidas = separar_invalidas(tipar(lote, spark.table(destino).schema), cfg["reglas"])
+    validas, invalidas = separar_invalidas(tipar(lote, cfg["columnas"]), cfg["reglas"])
     enviar_a_cuarentena(invalidas, batch_id)
-    mergear(ultima_version(validas, cfg["clave"], cfg["orden"]), cfg["clave"], cfg["orden"][0])
+    mergear(ultima_version(validas, cfg["clave"], cfg["orden"]),
+            cfg["condicion"], cfg["valores"], cfg["orden"][0])
 
 
 (spark.readStream.table(origen)

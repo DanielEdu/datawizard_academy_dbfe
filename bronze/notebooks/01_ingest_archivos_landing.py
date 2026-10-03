@@ -106,10 +106,11 @@ display(spark.sql(f"DESCRIBE TABLE {tabla_destino}"))
 
 # Las columnas del archivo deben llamarse igual que las de la tabla
 tecnicas = {"_metadata", "_rescued_data", "_ingestion_ts"}
-columnas_tabla = [c for c in spark.table(tabla_destino).columns if c not in tecnicas]
+columnas_tabla = set(spark.table(tabla_destino).columns) - tecnicas
+columnas_archivo = set(muestra.columns)
 
-print("En el archivo y no en la tabla:", [c for c in muestra.columns if c not in columnas_tabla])
-print("En la tabla y no en el archivo:", [c for c in columnas_tabla if c not in muestra.columns])
+print("En el archivo y no en la tabla:", sorted(columnas_archivo - columnas_tabla))
+print("En la tabla y no en el archivo:", sorted(columnas_tabla - columnas_archivo))
 
 # COMMAND ----------
 
@@ -154,12 +155,16 @@ lectura.printSchema()
 
 from pyspark.sql import functions as F
 
-campos_metadata = ["file_path", "file_name", "file_size",
-                   "file_block_start", "file_block_length", "file_modification_time"]
-
 bronze = lectura.select(
     "*",
-    F.struct(*[F.col(f"_metadata.{c}").alias(c) for c in campos_metadata]).alias("_metadata"),
+    F.struct(
+        F.col("_metadata.file_path").alias("file_path"),
+        F.col("_metadata.file_name").alias("file_name"),
+        F.col("_metadata.file_size").alias("file_size"),
+        F.col("_metadata.file_block_start").alias("file_block_start"),
+        F.col("_metadata.file_block_length").alias("file_block_length"),
+        F.col("_metadata.file_modification_time").alias("file_modification_time"),
+    ).alias("_metadata"),
     F.current_timestamp().alias("_ingestion_ts"),
 )
 
