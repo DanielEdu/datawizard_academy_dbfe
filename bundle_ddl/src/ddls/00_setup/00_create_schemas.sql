@@ -2,7 +2,9 @@
 -- lending    → Azure SQL (base transaccional Wizard Bank)  · ingesta desde base de datos
 -- cobranzas  → sistema legado on-premise de cobranzas      · ingesta batch vía ADF
 -- cobranzas_richard → reto: mismas tablas de cobranzas, cargadas por el bundle bronze/cobranzas_richard
+-- cobranzas_jhersson → reto: mismas tablas de cobranzas, cargadas por el bundle bronze/cobranzas_jhersson
 CREATE CATALOG IF NOT EXISTS IDENTIFIER(:catalog);
 CREATE SCHEMA IF NOT EXISTS IDENTIFIER(:catalog || '.lending')   COMMENT 'Bronze de la base transaccional Lending de Wizard Bank (Azure SQL). Job de ingesta desde base de datos.';
 CREATE SCHEMA IF NOT EXISTS IDENTIFIER(:catalog || '.cobranzas') COMMENT 'Bronze del sistema legado on-premise de cobranzas. Job de ingesta batch independiente (ADF).';
 CREATE SCHEMA IF NOT EXISTS IDENTIFIER(:catalog || '.cobranzas_richard') COMMENT 'Reto: Bronze de cobranzas (cuotas, pagos, gestiones_cobranza) cargado con Auto Loader por el bundle cobranzas_richard.';
+CREATE SCHEMA IF NOT EXISTS IDENTIFIER(:catalog || '.cobranzas_jhersson') COMMENT 'Reto: Bronze de cobranzas (cuotas, pagos, gestiones_cobranza) cargado con Auto Loader por el bundle cobranzas_jhersson.';
