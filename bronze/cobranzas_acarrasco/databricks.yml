@@ -1,0 +1,35 @@
+# Declarative Automation Bundle: ingesta S3 → Bronze (schema cobranzas_acarrasco) con Auto Loader.
+# Reto: schema destino cobranzas_acarrasco (bronze.cobranzas_acarrasco.<tabla>_brz). Tablas con sufijo _brz.
+# Basado en bronze/lending (spec: bronze/lending/specs/bronze_ingest.md).
+bundle:
+  name: cobranzas_acarrasco
+  uuid: c8d4e9f1-2a3b-4c5d-8e6f-7a0b1c2d3e4f
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog_bronze:
+    description: Catálogo destino de la capa Bronze. Cada target puede sobrescribirlo.
+    default: bronze
+
+targets:
+  dev:
+    # Recursos con prefijo '[dev <usuario>]' y schedules/triggers pausados.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+    variables:
+      catalog_bronze: bronze
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+      # Una sola copia del bundle en prod, bajo el usuario que despliega.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog_bronze: bronze
