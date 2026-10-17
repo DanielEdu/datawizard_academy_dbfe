@@ -8,7 +8,13 @@ resources:
     job_bronze_lending_ingest:
       name: job_bronze_lending_ingest
       max_concurrent_runs: 1
-      timeout_seconds: 3600
+
+      # Job continuo: apenas termina una corrida arranca la siguiente. Pausado por defecto
+      # (activar desde la UI o cambiando a UNPAUSED). Sin timeout_seconds ni max_retries de task:
+      # no aplican a jobs continuos (los reintentos los maneja el propio job con backoff).
+      continuous:
+        pause_status: PAUSED
+
       tags:
         capa: bronze
         dominio: ingesta
@@ -24,9 +30,6 @@ resources:
       tasks:
         - task_key: ingest_lending
           environment_key: default
-          # Red de seguridad para schema evolution: main.py ya reintenta una vez por tabla
-          # cuando Auto Loader detiene el stream por una columna nueva.
-          max_retries: 1
           spark_python_task:
             python_file: ../src/main.py
             parameters:
