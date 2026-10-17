@@ -1,0 +1,38 @@
+# Declarative Automation Bundle: generadores de datos sintéticos de Wizard Bank que corren en Databricks.
+# Hoy: emisor continuo de eventos de la app (Kafka simulado) hacia landing.
+# Spec: specs/datagen_spec.md
+bundle:
+  name: bundle_datagen
+  uuid: 2cd21cc7-4bd9-4d68-9c68-16846a01bfb2
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog_bronze:
+    description: Catálogo Bronze de donde el emisor lee clientes y ofertas existentes.
+    default: bronze
+  bucket_root:
+    description: Raíz del bucket del lakehouse (landing). Acceso vía external location de UC.
+    default: s3://lakehouse-datawizard
+
+targets:
+  dev:
+    # Recursos con prefijo '[dev <usuario>]' y schedules/triggers pausados.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+    variables:
+      catalog_bronze: bronze
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-dfb14324-e95d.cloud.databricks.com
+      profile: free-edition
+      # Una sola copia del bundle en prod, bajo el usuario que despliega.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog_bronze: bronze

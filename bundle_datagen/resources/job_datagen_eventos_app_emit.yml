@@ -1,0 +1,45 @@
+# Job continuo: emite eventos de la app como .parquet (schema de la fuente Kafka de Spark) a
+# landing/wizard_bank_kafka/eventos_app/, la carpeta que lee job_bronze_app_ingest. Cada run emite
+# durante `--minutos` y termina; al ser `continuous`, el job lo relanza solo (queda encendido).
+# Arranca PAUSADO a propósito: encenderlo es una decisión (consume cómputo mientras esté activo).
+resources:
+  jobs:
+    job_datagen_eventos_app_emit:
+      name: job_datagen_eventos_app_emit
+      max_concurrent_runs: 1
+      timeout_seconds: 4200
+      tags:
+        capa: datagen
+        dominio: eventos_app
+        proyecto: wizard-bank
+
+      continuous:
+        pause_status: PAUSED
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
+      tasks:
+        - task_key: emit_eventos_app
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/emit_eventos_app.py
+            parameters:
+              - --catalog
+              - ${var.catalog_bronze}
+              - --landing
+              - ${var.bucket_root}/landing/wizard_bank_kafka/eventos_app
+              - --manifiestos
+              - ${var.bucket_root}/landing/wizard_bank_kafka/_manifiestos/eventos_app
+              - --staging
+              - ${var.bucket_root}/landing/wizard_bank_kafka/_staging/eventos_app
+              - --eps
+              - "5"
+              - --segundos-por-archivo
+              - "30"
+              - --minutos
+              - "50"
+              - --factor-casos
+              - "1.0"
