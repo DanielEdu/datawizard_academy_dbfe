@@ -146,11 +146,14 @@ Estructura de cada archivo (`eventos_app_<AAAAMMDD_HHMMSS>.parquet`):
 |---|---|
 | `--base-csv` | Carpeta con `clientes*.csv` y `ofertas_preaprobadas*.csv` (en lugar de `--dsn`) |
 | `--eventos` | Eventos normales por archivo (default 20.000) |
-| `--horas` | Ventana hacia atrás en la que caen los eventos (default 6) |
+| `--horas` | Ventana hacia atrás en la que caen los eventos de la primera corrida (default 6) |
 | `--casos-silver N` | Registros por caso (default 20) |
 | `--seed` | Fija el azar (por defecto cada corrida es distinta) |
 
 Cada corrida es un archivo nuevo: para simular más tráfico, vuelve a correrlo y luego el job.
+Si `--salida` ya tiene archivos, la corrida es un **delta**: el tráfico normal continúa desde la última
+llegada del archivo anterior (así el watermark de Silver solo descarta los casos tardíos) y se suman
+reenvíos de eventos ya publicados.
 
 Con un Event Hubs/Kafka real (Sesión 11) se usa `--destino kafka` con `--bootstrap-servers`
 y `--connection-string`; ver `python productor_eventos.py --help`.
@@ -172,7 +175,7 @@ con la tabla, el caso, la clave y lo que Silver debería hacer.
 | `hecho_modificado` | Cobranzas (pagos, gestiones) | No cambiar nada (insert-only) |
 | `correccion` | Lending (tipos_cambio) | Tomar el valor corregido |
 | `duplicado` | Eventos | Una sola fila (`dropDuplicatesWithinWatermark`) |
-| `reenvio_anterior` | Eventos | Se cuela si su lote ya salió del watermark |
+| `reenvio_anterior` | Eventos | Una sola fila (el estado lo reconoce, o se descarta por tardío) |
 | `llegada_tardia` | Eventos | Entra, con `retraso_seg` alto |
 | `fuera_watermark` | Eventos | Descartado si ya se procesó un lote más nuevo |
 | `payload_corrupto` | Eventos | `id_evento` NULL en Bronze; Silver lo filtra |

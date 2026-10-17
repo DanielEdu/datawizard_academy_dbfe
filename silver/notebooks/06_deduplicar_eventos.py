@@ -135,7 +135,7 @@ display(spark.sql(f"SELECT tipo_evento, count(*) AS eventos FROM {destino} GROUP
 # MAGIC | `duplicado` | Una sola fila |
 # MAGIC | `llegada_tardia` (30–90 min) | Entra; `retraso_seg` alto |
 # MAGIC | `fuera_watermark` (3–6 h) | Se descarta **si ya se procesó un lote más nuevo** (el watermark avanza entre lotes) |
-# MAGIC | `reenvio_anterior` | Se cuela: el estado de dedup ya olvidó ese `id_evento` (estado acotado) |
+# MAGIC | `reenvio_anterior` | Una sola fila: dentro del watermark lo reconoce el estado; si es más viejo, se descarta por tardío |
 # MAGIC | `payload_corrupto` | No llega: se queda en Bronze con `id_evento` NULL |
 # MAGIC | `tipo_desconocido` | Entra |
 # MAGIC

@@ -49,7 +49,9 @@ Destino parquet:
   · Un archivo por corrida: <salida>/eventos_app_<AAAAMMDD_HHMMSS>.parquet, subido a
     <s3>/eventos_app/. Los offsets continúan desde los .parquet previos de --salida.
   · timestamp_evento se reparte en las últimas --horas; timestamp (de Kafka) es el
-    momento de llegada al broker, unos segundos después.
+    momento de llegada al broker, unos segundos después. Si --salida ya tiene archivos,
+    la corrida es un delta: el tráfico normal va desde la última llegada del archivo
+    anterior hasta ahora.
   · Casos para Silver (S17), --casos-silver por caso: duplicado (at-least-once),
     reenvío de una corrida anterior, llegada tardía dentro del watermark, evento
     fuera del watermark, payload corrupto y tipo de evento desconocido. Quedan en
@@ -274,7 +276,7 @@ def generar_realtime(producer, topic, clientes, ofertas, eps):
 
 ESPERADO_EVENTOS = {
     'duplicado':          'una sola fila en Silver (dropDuplicatesWithinWatermark por id_evento)',
-    'reenvio_anterior':   'se cuela en Silver si su lote anterior ya salió del watermark de 2 h (dedup con estado acotado)',
+    'reenvio_anterior':   'no se duplica en Silver: dentro del watermark lo reconoce el estado; más viejo, se descarta por tardío',
     'llegada_tardia':     'entra a Silver (retraso < watermark de 2 h); retraso_seg alto',
     'fuera_watermark':    'Silver lo descarta si ya procesó un lote más nuevo (más viejo que el watermark)',
     'payload_corrupto':   'Bronze guarda _payload_crudo con id_evento NULL; Silver lo filtra (cuarentena)',
@@ -288,15 +290,17 @@ def _particion(clave, n):
 
 
 def _offsets_previos(salida):
-    """Último offset por partición en los .parquet ya generados (para continuar la secuencia)."""
+    """Lo que dejaron los .parquet ya generados: último offset por partición (para continuar
+    la secuencia), sus values (para los reenvíos) y la última llegada al broker (para el delta)."""
     import pyarrow.parquet as pq
-    maximos, valores = {}, []
+    maximos, valores, ultimo_ts = {}, [], None
     for ruta in sorted(glob.glob(os.path.join(salida, 'eventos_app_*.parquet'))):
-        t = pq.read_table(ruta, columns=['partition', 'offset', 'value']).to_pylist()
+        t = pq.read_table(ruta, columns=['partition', 'offset', 'value', 'timestamp']).to_pylist()
         for r in t:
             maximos[r['partition']] = max(maximos.get(r['partition'], -1), r['offset'])
+            ultimo_ts = r['timestamp'] if ultimo_ts is None else max(ultimo_ts, r['timestamp'])
         valores.extend(r['value'] for r in t)
-    return maximos, valores
+    return maximos, valores, ultimo_ts
 
 
 def generar_parquet(clientes, ofertas, n_eventos, horas, topic, particiones, salida, n_casos):
@@ -310,12 +314,19 @@ def generar_parquet(clientes, ofertas, n_eventos, horas, topic, particiones, sal
         sys.exit('ERROR: falta pyarrow. Instalar con: pip install pyarrow')
 
     ahora = datetime.now(timezone.utc).replace(microsecond=0)
+    maximos, previos, ultimo_ts = _offsets_previos(salida)
+    # Primera corrida: el tráfico cae en las últimas `horas`. Las siguientes son un delta: el
+    # tráfico normal continúa donde terminó el archivo anterior, así el watermark de Silver
+    # solo descarta los casos tardíos y no el tráfico nuevo.
     desde = ahora - timedelta(hours=horas)
+    if ultimo_ts is not None and ultimo_ts > desde:
+        desde = ultimo_ts
+    rango_seg = (ahora - desde).total_seconds()
     manifiesto = []
 
     def nuevo(ts_evento=None, tipo=None):
         oferta = random.choice(ofertas)
-        ts_evento = ts_evento or desde + timedelta(seconds=random.uniform(0, horas * 3600))
+        ts_evento = ts_evento or desde + timedelta(seconds=random.uniform(0, rango_seg))
         return construir_evento(tipo or _elegir_tipo(), clientes[oferta['id_cliente']], oferta, ts_evento)
 
     def registro(ev, ts_kafka, value=None):
@@ -340,7 +351,6 @@ def generar_parquet(clientes, ofertas, n_eventos, horas, topic, particiones, sal
             registros.append({**r, 'ts': min(r['ts'] + timedelta(seconds=random.uniform(1, 30)), ahora)})
             anotar('duplicado', json.loads(r['value'])['id_evento'])
         # 2 · Reenvío de un evento de una corrida anterior (horas después)
-        maximos, previos = _offsets_previos(salida)
         for v in random.sample(previos, min(n_casos, len(previos))):
             ev = json.loads(v) if v and v[:1] == b'{' and v.endswith(b'}') else None
             if ev:
@@ -367,8 +377,6 @@ def generar_parquet(clientes, ofertas, n_eventos, horas, topic, particiones, sal
             ev = nuevo(tipo='banner_cerrado')
             registros.append(registro(ev, ahora))
             anotar('tipo_desconocido', ev['id_evento'])
-    else:
-        maximos, _ = _offsets_previos(salida)
 
     # Offsets: secuencia por partición en orden de llegada al broker
     registros.sort(key=lambda r: r['ts'])
@@ -434,7 +442,8 @@ def main():
     ap.add_argument('--salida', default='./parquet_eventos_app',
                     help='Destino parquet: carpeta local de los archivos (y de los offsets previos).')
     ap.add_argument('--horas', type=float, default=6,
-                    help='Destino parquet: ventana de tiempo hacia atrás en la que caen los eventos. Default 6.')
+                    help='Destino parquet: ventana de tiempo hacia atrás en la que caen los eventos de la '
+                         'primera corrida (las siguientes continúan desde el archivo anterior). Default 6.')
     ap.add_argument('--particiones', type=int, default=3,
                     help='Destino parquet: particiones simuladas del topic. Default 3.')
     ap.add_argument('--casos-silver', type=int, default=20,

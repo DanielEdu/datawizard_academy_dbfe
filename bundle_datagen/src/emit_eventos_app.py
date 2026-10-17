@@ -58,7 +58,7 @@ PROB_CASOS = {
 
 ESPERADO_EVENTOS = {
     "duplicado":        "una sola fila en Silver (dropDuplicatesWithinWatermark por id_evento)",
-    "reenvio_anterior": "se cuela en Silver si su lote anterior ya salió del watermark de 2 h (dedup con estado acotado)",
+    "reenvio_anterior": "no se duplica en Silver: dentro del watermark lo reconoce el estado; más viejo, se descarta por tardío",
     "llegada_tardia":   "entra a Silver (retraso < watermark de 2 h); retraso_seg alto",
     "fuera_watermark":  "Silver lo descarta si ya procesó un lote más nuevo (más viejo que el watermark)",
     "payload_corrupto": "Bronze guarda _payload_crudo con id_evento NULL; Silver lo filtra (cuarentena)",
