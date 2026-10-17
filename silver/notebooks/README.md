@@ -12,6 +12,7 @@ cada patrón antes de empaquetarlo en un job.
 | `05_registrar_estados.py` | Historial de estados | solicitudes → solicitudes_estados | Insert-only por `(id, fecha_actualizacion)` | S16 |
 | `06_deduplicar_eventos.py` | Evento | eventos_app | Streaming append con watermark + `dropDuplicatesWithinWatermark` | S17 |
 | `07_construir_sesiones.py` | Evento agregado | eventos_app → sesiones_app | `session_window` + watermark, modo append | S17 |
+| `08_explicar_streaming_eventos.py` | Explicativo S17 | laboratorio autocontenido (`<catalogo>.app_lab`) | Toda la sesión con datos: watermark, dedup, ventanas, joins, operación | S17 |
 
 Todos leen Bronze como stream (`readStream.table` + `foreachBatch` o append, `trigger(availableNow=True)`)
 y por defecto escriben en tablas de práctica `<tabla>_lab` y `_cuarentena_lab`, creadas con
