@@ -43,7 +43,8 @@ display(spark.sql(f"DESCRIBE TABLE {destino}"))   # sk_cliente, vigencia, hash_a
 # MAGIC %md
 # MAGIC ## 1. Preparar el origen
 # MAGIC
-# MAGIC - **Tipar** con `try_cast` (Bronze es STRING).
+# MAGIC - **Tipar** con `try_cast` (Bronze es STRING) solo las columnas que cambian de tipo; las de texto pasan tal cual.
+# MAGIC   Un valor que no se puede convertir queda NULL, por eso el paso 5 manda esas filas a cuarentena antes de llegar aquí.
 # MAGIC - **Fecha efectiva del cambio**: `fecha_actualizacion`; si viene vacía (primera carga), `fecha_creacion`
 # MAGIC   y luego `fecha_registro`.
 # MAGIC - **Una fila por cliente en el lote**: la más reciente.
@@ -58,31 +59,31 @@ from pyspark.sql.window import Window
 
 def preparar_origen(lote):
     # Los tipos son los del DDL de dim_clientes (el DDL es el contrato)
-    clientes = lote.selectExpr(
-        "try_cast(id_cliente AS BIGINT) AS id_cliente",
+    clientes = lote.select(
+        F.col("id_cliente").try_cast("bigint").alias("id_cliente"),
         # Tipo 2
-        "try_cast(ingreso_mensual_declarado AS DECIMAL(14,2)) AS ingreso_mensual_declarado",
-        "try_cast(situacion_laboral AS STRING) AS situacion_laboral",
-        "try_cast(score_interno AS SMALLINT) AS score_interno",
-        "try_cast(nivel_riesgo AS STRING) AS nivel_riesgo",
+        F.col("ingreso_mensual_declarado").try_cast("decimal(14,2)").alias("ingreso_mensual_declarado"),
+        F.col("situacion_laboral"),
+        F.col("score_interno").try_cast("smallint").alias("score_interno"),
+        F.col("nivel_riesgo"),
         # Tipo 1
-        "try_cast(email AS STRING) AS email",
-        "try_cast(ciudad AS STRING) AS ciudad",
-        "try_cast(nombres AS STRING) AS nombres",
-        "try_cast(apellidos AS STRING) AS apellidos",
+        F.col("email"),
+        F.col("ciudad"),
+        F.col("nombres"),
+        F.col("apellidos"),
         # Tipo 0
-        "try_cast(id_pais AS SMALLINT) AS id_pais",
-        "try_cast(tipo_documento AS STRING) AS tipo_documento",
-        "try_cast(numero_documento AS STRING) AS numero_documento",
-        "try_cast(fecha_nacimiento AS DATE) AS fecha_nacimiento",
-        "try_cast(id_campania_captacion AS INT) AS id_campania_captacion",
-        "try_cast(fecha_registro AS TIMESTAMP) AS fecha_registro",
+        F.col("id_pais").try_cast("smallint").alias("id_pais"),
+        F.col("tipo_documento"),
+        F.col("numero_documento"),
+        F.col("fecha_nacimiento").try_cast("date").alias("fecha_nacimiento"),
+        F.col("id_campania_captacion").try_cast("int").alias("id_campania_captacion"),
+        F.col("fecha_registro").try_cast("timestamp").alias("fecha_registro"),
         # Fecha efectiva del cambio
-        """coalesce(try_cast(fecha_actualizacion AS TIMESTAMP),
-                    try_cast(fecha_creacion AS TIMESTAMP),
-                    try_cast(fecha_registro AS TIMESTAMP)) AS fecha_actualizacion""",
-        "_metadata.file_path AS _origen_archivo",
-        "_ingestion_ts AS _bronze_ingestion_ts",
+        F.coalesce(F.col("fecha_actualizacion").try_cast("timestamp"),
+                   F.col("fecha_creacion").try_cast("timestamp"),
+                   F.col("fecha_registro").try_cast("timestamp")).alias("fecha_actualizacion"),
+        F.col("_metadata.file_path").alias("_origen_archivo"),
+        F.col("_ingestion_ts").alias("_bronze_ingestion_ts"),
     )
     w = Window.partitionBy("id_cliente").orderBy(F.col("fecha_actualizacion").desc(),
                                                  F.col("_bronze_ingestion_ts").desc())
@@ -203,6 +204,29 @@ def merge_tipo_1(origen_df):
         .execute())
 
 
+# Columnas de Bronze (STRING) que se convierten a otro tipo en preparar_origen
+COLUMNAS_TIPADAS = {
+    "ingreso_mensual_declarado": "decimal(14,2)",
+    "score_interno": "smallint",
+    "id_pais": "smallint",
+    "fecha_nacimiento": "date",
+    "id_campania_captacion": "int",
+    "fecha_registro": "timestamp",
+    "fecha_actualizacion": "timestamp",
+    "fecha_creacion": "timestamp",
+}
+
+
+def cast_invalido():
+    """Condición: algún valor venía con dato (no nulo ni vacío) y try_cast lo dejó en NULL."""
+    condicion = F.lit(False)
+    for columna, tipo in COLUMNAS_TIPADAS.items():
+        original = F.col(columna)
+        condicion = condicion | (original.isNotNull() & (F.trim(original) != "")
+                                 & original.try_cast(tipo).isNull())
+    return condicion
+
+
 def enviar_a_cuarentena(df, motivo, batch_id):
     (df.select(F.lit("dim_clientes").alias("tabla"), F.lit(motivo).alias("motivos"),
                F.to_json(F.struct(*df.columns)).alias("fila"), "_origen_archivo",
@@ -217,10 +241,15 @@ def enviar_a_cuarentena(df, motivo, batch_id):
 # COMMAND ----------
 
 def scd2_clientes(lote, batch_id):
-    sin_clave = lote.filter("try_cast(id_cliente AS BIGINT) IS NULL")
-    enviar_a_cuarentena(sin_clave.select("*", F.col("_metadata.file_path").alias("_origen_archivo"))
-                                 .drop("_metadata"), "clave", batch_id)
-    origen_df = preparar_origen(lote.filter("try_cast(id_cliente AS BIGINT) IS NOT NULL"))
+    def crudo(df):
+        return df.select("*", F.col("_metadata.file_path").alias("_origen_archivo")).drop("_metadata")
+
+    con_clave = F.col("id_cliente").try_cast("bigint").isNotNull()
+    enviar_a_cuarentena(crudo(lote.filter(~con_clave)), "clave", batch_id)
+    lote = lote.filter(con_clave)
+    # Un cast fallido dejaría NULL en una columna (en Tipo 2 cambiaría el hash y abriría una versión falsa)
+    enviar_a_cuarentena(crudo(lote.filter(cast_invalido())), "cast_invalido", batch_id)
+    origen_df = preparar_origen(lote.filter(~cast_invalido()))
     cambios, tardias = clasificar(origen_df)
     enviar_a_cuarentena(tardias, "llegada_tardia", batch_id)
     merge_tipo_2(cambios)
