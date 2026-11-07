@@ -237,7 +237,9 @@ except Exception as e:
 # MAGIC
 # MAGIC 📋 Reemplaza **`transformations/14_gold_cartera.sql`**
 {{gobierno/14_gold_cartera.sql}}
-# MAGIC > Si el update falla con `UNRESOLVED_ROUTINE`, falta la clave `politicas` en Configuration o las funciones no se crearon en ese esquema (paso 5).
+# MAGIC > Si el update falla con `PARSE_SYNTAX_ERROR` ("Syntax error at or near '.'") en la línea de `id_cliente`, falta la clave
+# MAGIC > `politicas` en Configuration: el pipeline no reemplazó `${politicas}`. Si falla con `UNRESOLVED_ROUTINE`, la clave está
+# MAGIC > pero apunta a otro esquema, o las funciones no se crearon ahí (paso 5).
 
 # COMMAND ----------
 
