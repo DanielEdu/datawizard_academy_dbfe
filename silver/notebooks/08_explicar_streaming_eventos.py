@@ -270,7 +270,14 @@ FROM {lab}.paso3_dedup_con_watermark
 # MAGIC cd ../../bronze/app && databricks bundle run job_bronze_app_ingest -t dev
 # MAGIC ```
 # MAGIC
-# MAGIC Con `job_datagen_eventos_app_emit` encendido no hace falta el productor: basta correr `job_bronze_app_ingest`.
+# MAGIC Con `job_datagen_eventos_app_emit` encendido no hace falta el productor, pero **igual hay que correr
+# MAGIC `job_bronze_app_ingest`**: el emisor solo deja archivos en landing; mientras no se ingesten, Bronze no cambia y
+# MAGIC las celdas 🔁 no tienen nada nuevo que procesar.
+# MAGIC
+# MAGIC > **Si pasaron horas entre la carga inicial y el delta**, el primer delta no descarta nada: el watermark quedó en
+# MAGIC > "último evento de la carga inicial − 2 h", y todo lo nuevo es más reciente que eso. Ese delta sí mueve el
+# MAGIC > watermark a "ahora − 2 h" (míralo en la celda del watermark). **Manda un segundo delta**: ahí los casos
+# MAGIC > `fuera_watermark` (3–6 h de retraso) ya quedan por debajo y se descartan.
 # MAGIC
 # MAGIC Después vuelve a correr las celdas 🔁 de la Parte 1 y la Parte 2 (pasos 1, 2 y 3), y sigue con la celda de abajo.
 
