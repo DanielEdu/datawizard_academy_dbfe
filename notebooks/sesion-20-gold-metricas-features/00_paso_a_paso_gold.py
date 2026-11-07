@@ -64,7 +64,7 @@
 
 # Dónde vive todo: lo mismo que configuraste en el pipeline en la Sesión 19
 CATALOGO = "datawizard_dev"
-ESQUEMA = "lakeflow"
+ESQUEMA = "lending"
 
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
@@ -1224,10 +1224,10 @@ display(comparado.groupBy("criterio").agg(
 # MAGIC training_set = fe.create_training_set(
 # MAGIC     df=etiquetas,                                     # id_cliente, fecha_referencia, cae_en_mora
 # MAGIC     feature_lookups=[
-# MAGIC         FeatureLookup(table_name="datawizard_dev.lakeflow.features_cliente_mes_gld",
+# MAGIC         FeatureLookup(table_name="datawizard_dev.lending.features_cliente_mes_gld",
 # MAGIC                       lookup_key="id_cliente", timestamp_lookup_key="fecha_referencia",
 # MAGIC                       feature_names=["cuotas_impagas_3m", "pct_cuotas_a_tiempo_3m", "n_gestiones_3m", "nivel_riesgo"]),
-# MAGIC         FeatureLookup(table_name="datawizard_dev.lakeflow.features_app_cliente_dia_gld",
+# MAGIC         FeatureLookup(table_name="datawizard_dev.lending.features_app_cliente_dia_gld",
 # MAGIC                       lookup_key="id_cliente", timestamp_lookup_key="fecha_referencia",
 # MAGIC                       feature_names=["dias_activo_30d", "ctr_30d"]),
 # MAGIC     ],

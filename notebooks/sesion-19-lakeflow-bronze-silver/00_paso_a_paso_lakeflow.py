@@ -86,9 +86,9 @@
 # COMMAND ----------
 
 # Dónde vive todo (lo mismo que configurarás en el pipeline en el Paso 1).
-# Si comparten workspace, cada alumno usa su propio esquema (ej.: lakeflow_ana) aquí y en el pipeline.
+# Si comparten workspace, cada alumno usa su propio esquema (ej.: lending_ana) aquí y en el pipeline.
 CATALOGO = "datawizard_dev"
-ESQUEMA = "lakeflow"
+ESQUEMA = "lending"
 LANDING = "s3://lakehouse-datawizard/landing"
 
 # COMMAND ----------
@@ -113,7 +113,7 @@ for fuente in ["wizard_bank_rdb", "wizard_bank_onp", "wizard_bank_kafka"]:
 # MAGIC ## Paso 1 — Crear el pipeline 🖱️
 # MAGIC 1. En **Workspace**, entra a tu carpeta del curso → **Create** → **ETL pipeline**.
 # MAGIC 2. Nombre: `pipeline_wizard_bank_lakehouse` (convención del repo: `pipeline_<capa>_<fuente>_<función>`; aquí son todas las capas).
-# MAGIC 3. **Settings:** catálogo `datawizard_dev`, esquema `lakeflow` (o el tuyo, si comparten workspace), cómputo **Serverless**.
+# MAGIC 3. **Settings:** catálogo `datawizard_dev`, esquema `lending` (o el tuyo, si comparten workspace), cómputo **Serverless**.
 # MAGIC 4. **Settings → Configuration** → **Add configuration**: clave **`landing`**, valor `s3://lakehouse-datawizard/landing`.
 # MAGIC    Cada archivo la lee con `spark.conf.get("landing")`: así el mismo código sirve para otro bucket.
 # MAGIC 5. Si el editor trae archivos de ejemplo en `transformations/`, **bórralos**.
@@ -1033,5 +1033,5 @@ for t in ["paises_slv", "campanias_slv", "clientes_slv", "productos_slv", "ofert
 # MAGIC %md
 # MAGIC ## ⚠️ No borres el pipeline
 # MAGIC La **Sesión 20** le agrega Gold, métricas y feature tables a este mismo `pipeline_wizard_bank_lakehouse`, leyendo las Silver de hoy.
-# MAGIC Las tablas del pipeline **le pertenecen al pipeline**: si lo borras, se van todas las de `datawizard_dev.lakeflow`.
+# MAGIC Las tablas del pipeline **le pertenecen al pipeline**: si lo borras, se van todas las de `datawizard_dev.lending`.
 # MAGIC La limpieza está al final de la Sesión 20.2. Los archivos de landing **no** se tocan nunca: son la fuente de todo el curso.

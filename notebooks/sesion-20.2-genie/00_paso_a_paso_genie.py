@@ -49,7 +49,7 @@
 # COMMAND ----------
 
 CATALOGO = "datawizard_dev"
-ESQUEMA = "lakeflow"
+ESQUEMA = "lending"
 
 
 def t(nombre):
@@ -778,7 +778,7 @@ print(f"Puntaje de preparación DESPUÉS: {auditoria_despues.groupBy().sum('punt
 # MAGIC - Pregunta: *¿Cuánto saldo en USD hay por tramo de mora en cada país?*
 # MAGIC ```sql
 # MAGIC SELECT pais, tramo_mora, SUM(saldo_capital_usd) AS saldo_capital_usd
-# MAGIC FROM datawizard_dev.lakeflow.cartera_creditos_gld
+# MAGIC FROM datawizard_dev.lending.cartera_creditos_gld
 # MAGIC GROUP BY pais, tramo_mora
 # MAGIC ORDER BY pais, tramo_mora
 # MAGIC ```
