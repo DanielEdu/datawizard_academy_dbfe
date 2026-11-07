@@ -137,12 +137,17 @@ for esquema in [ESQUEMA_DEV, ESQUEMA_PROD]:
 
 # MAGIC %md
 # MAGIC ## Paso 4 — Secretos en GitHub 🖱️
-# MAGIC En tu fork: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Crea dos:
+# MAGIC En tu fork: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+# MAGIC El formulario pide un secreto a la vez, con dos campos: **Name** y **Secret**. Llénalo y pulsa **Add secret**;
+# MAGIC después vuelve a **New repository secret** para el segundo:
 # MAGIC
-# MAGIC | Nombre | Valor |
-# MAGIC |---|---|
-# MAGIC | `DATABRICKS_HOST` | La URL de tu workspace, ej. `https://dbc-xxxx.cloud.databricks.com` |
-# MAGIC | `DATABRICKS_TOKEN` | El token del paso 3 |
+# MAGIC | Vez | Name (escríbelo tal cual) | Secret (el valor) |
+# MAGIC |---|---|---|
+# MAGIC | 1 | `DATABRICKS_HOST` | La URL de tu workspace, ej. `https://dbc-xxxx.cloud.databricks.com` (sin `/` al final ni lo que va después de `.com`) |
+# MAGIC | 2 | `DATABRICKS_TOKEN` | El token del paso 3 (empieza con `dapi`) |
+# MAGIC
+# MAGIC Al terminar, la lista **Repository secrets** muestra los dos nombres. El valor ya no se puede ver, solo reemplazar:
+# MAGIC si te equivocaste, entra al secreto y pulsa **Update**.
 # MAGIC
 # MAGIC Es la misma idea del secret scope de la Sesión 21: el valor lo guarda la plataforma y el código solo lo nombra
 # MAGIC (`${{ secrets.DATABRICKS_TOKEN }}`). GitHub lo oculta en los logs con `***`.
