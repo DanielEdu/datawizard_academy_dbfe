@@ -1,18 +1,57 @@
-"""Genera 00_paso_a_paso_lakeflow.py desde _plantilla_guia.py, insertando el código de cada archivo de
-transformations/ donde la plantilla dice {{archivo}}. Así la guía y el pipeline nunca se desincronizan.
-Uso: python generar_guia.py"""
-import pathlib, re
+"""Genera las guías paso a paso de cada sesión desde su `_plantilla.py`, insertando el código real de `lakeflow/`.
+Así la guía y el pipeline nunca se desincronizan.
 
-aqui = pathlib.Path(__file__).parent
-plantilla = (aqui / "_plantilla_guia.py").read_text()
+Marcas en la plantilla (rutas relativas a lakeflow/):
+  {{transformations/01_bronze_lending.py}}  → bloque de código 📋 dentro de una celda markdown (el alumno lo copia al pipeline)
+  {{ejecutar:metric_views/kpi_colocacion.sql}} → celda ejecutable: el SQL dentro de spark.sql(), con el catálogo y el esquema
+                                              de la guía (CATALOGO, ESQUEMA) en lugar de datawizard_dev.lakeflow
+
+Uso (desde la raíz del repo o desde notebooks/):  python notebooks/generar_guias.py
+"""
+import pathlib
+import re
+
+AQUI = pathlib.Path(__file__).parent
+LAKEFLOW = AQUI.parent / "lakeflow"
+
+# carpeta de la sesión → nombre de la guía generada
+GUIAS = {
+    "sesion-19-lakeflow-bronze-silver": "00_paso_a_paso_lakeflow.py",
+    "sesion-20-gold-metricas-features": "00_paso_a_paso_gold.py",
+    "sesion-20.2-genie": "00_paso_a_paso_genie.py",
+}
 
 
-def bloque(m):
-    archivo = aqui / "transformations" / m.group(1)
+def bloque(ruta):
+    archivo = LAKEFLOW / ruta
     lenguaje = "sql" if archivo.suffix == ".sql" else "python"
-    lineas = [f"# MAGIC ```{lenguaje}"] + [f"# MAGIC {l}".rstrip() for l in archivo.read_text().rstrip().splitlines()] + ["# MAGIC ```"]
+    lineas = [f"# MAGIC ```{lenguaje}"]
+    lineas += [f"# MAGIC {l}".rstrip() for l in archivo.read_text().rstrip().splitlines()]
+    lineas += ["# MAGIC ```"]
     return "\n".join(lineas)
 
 
-(aqui / "00_paso_a_paso_lakeflow.py").write_text(re.sub(r"\{\{(.+?)\}\}", bloque, plantilla))
-print("ok: 00_paso_a_paso_lakeflow.py")
+def ejecutable(ruta):
+    sql = (LAKEFLOW / ruta).read_text().rstrip()
+    assert '"""' not in sql, f"{ruta}: no puede contener triple comilla"
+    return "\n".join([
+        f"# Fuente: lakeflow/{ruta} (generado: no editar aquí)",
+        f'sql = """\n{sql}\n"""',
+        'spark.sql(sql.replace("datawizard_dev.lakeflow", f"{CATALOGO}.{ESQUEMA}"))',
+    ])
+
+
+def reemplazar(m):
+    marca = m.group(1).strip()
+    if marca.startswith("ejecutar:"):
+        return ejecutable(marca.removeprefix("ejecutar:").strip())
+    return bloque(marca)
+
+
+for carpeta, salida in GUIAS.items():
+    plantilla = AQUI / carpeta / "_plantilla.py"
+    if not plantilla.exists():
+        continue
+    texto = re.sub(r"\{\{(.+?)\}\}", reemplazar, plantilla.read_text())
+    (AQUI / carpeta / salida).write_text(texto)
+    print(f"ok: {carpeta}/{salida}")

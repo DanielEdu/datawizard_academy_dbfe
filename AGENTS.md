@@ -8,7 +8,13 @@ con reglas específicas; las de este archivo valen siempre.
 
 Un bundle de Databricks (Declarative Automation Bundle) por carpeta: `<capa>/<fuente>/` con
 `databricks.yml`, `resources/*.yml`, `src/`, `config/`, `specs/` y `README.md`.
-Los DDL viven en `bundle_ddl/`.
+Los DDL viven en `bundle_ddl/`. El pipeline declarativo de todo el Lakehouse (Sesiones 19 y 20) vive en `lakeflow/`
+(también es un bundle: `transformations/`, `metric_views/`, `mejoras_genie/`, `resources/`).
+
+**Notebooks de clase:** desde la Sesión 19, las guías paso a paso van **fuera de los bundles**, en `notebooks/sesion-<NN>-<tema>/`.
+La guía `00_paso_a_paso_*.py` es generada desde `_plantilla.py` con `python notebooks/generar_guias.py`, que inserta el código de
+`lakeflow/`: si cambias un archivo de `lakeflow/`, regenera las guías. Los notebooks de las Sesiones 11 a 18 se quedan en
+`bronze/notebooks/`, `silver/notebooks/` y `gold/notebooks/` para no romper rutas de los alumnos.
 
 ## Convenciones de nombres
 
@@ -27,6 +33,10 @@ comentarios en español. Todo en `snake_case`, minúsculas, sin tildes ni espaci
 | Módulo Python | `snake_case` por contenido | `autoloader.py` |
 | Archivo SQL de DDL | `<entidad>_<sufijo de capa>.sql` | `pagos_brz.sql` |
 | Tabla | `<catálogo>.<schema>.<entidad>_<sufijo de capa>` | `bronze.lending.pagos_brz` |
+| Feature table | `features_<sujeto>_<grano>_gld`, llave con `TIMESERIES` | `features_cliente_mes_gld` |
+| Metric view | `kpi_<tema>` (sin sufijo de capa: es una vista sobre Gold) | `kpi_colocacion` |
+| Transformación del pipeline | `<NN>_<capa>_<tema>.py\|.sql` en `lakeflow/transformations/` | `13_gold_metricas.sql` |
+| Guía de clase | `notebooks/sesion-<NN>-<tema>/00_paso_a_paso_<tema>.py` | `notebooks/sesion-20.2-genie/00_paso_a_paso_genie.py` |
 | Config de tablas | `config/tablas_<fuente>.yml` | `config/tablas_lending.yml` |
 | Spec | `specs/<tema>.md` | `specs/bronze_ingest.md` |
 

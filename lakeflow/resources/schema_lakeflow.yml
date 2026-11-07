@@ -1,0 +1,8 @@
+# Esquema donde publica el pipeline del bundle. Lo crea el bundle y lo borra `databricks bundle destroy`
+# (con todas sus tablas): por eso no se reutiliza el esquema `lakeflow` del pipeline creado en la UI.
+resources:
+  schemas:
+    schema_lakeflow:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Lakehouse de Wizard Bank publicado por el bundle lakeflow (Bronze, Silver, Gold y feature tables)
