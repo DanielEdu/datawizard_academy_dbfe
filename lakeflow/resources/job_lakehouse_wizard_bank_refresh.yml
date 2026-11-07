@@ -1,0 +1,17 @@
+# Job que refresca el pipeline cuando llega un archivo a landing (Sesión 19, paso 14).
+# En el target dev queda pausado (mode: development); se prende a mano o se despliega a prod.
+resources:
+  jobs:
+    job_lakehouse_wizard_bank_refresh:
+      name: job_lakehouse_wizard_bank_refresh
+      max_concurrent_runs: 1
+      trigger:
+        file_arrival:
+          url: ${var.landing}/
+      tasks:
+        - task_key: refresh_lakehouse
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.pipeline_wizard_bank_lakehouse.id}
+      tags:
+        proyecto: wizard-bank
+        capa: medallion

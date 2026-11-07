@@ -1,0 +1,18 @@
+# Pipeline declarativo: landing → Bronze → Silver (Sesión 19) → Gold, métricas y feature tables (Sesión 20).
+# Cada archivo de transformations/ es un paso de las guías de notebooks/sesion-19-* y notebooks/sesion-20-*.
+resources:
+  pipelines:
+    pipeline_wizard_bank_lakehouse:
+      name: pipeline_wizard_bank_lakehouse
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.schema_lakeflow.name}   # depende del esquema del bundle: se crea antes
+      serverless: true
+      channel: CURRENT
+      configuration:
+        landing: ${var.landing}
+      libraries:
+        - glob:
+            include: ../transformations/**
+      tags:
+        proyecto: wizard-bank
+        capa: medallion

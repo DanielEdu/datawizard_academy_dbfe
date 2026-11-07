@@ -1,24 +1,25 @@
 # Databricks notebook source
 
 # MAGIC %md
-# MAGIC # Lakeflow paso a paso · El Lakehouse de Wizard Bank, reconstruido con un pipeline declarativo
-# MAGIC **Data Wizard Academy · Databricks Track**
+# MAGIC # Sesión 19 · Lakeflow paso a paso: Bronze y Silver de Wizard Bank en un pipeline declarativo
+# MAGIC **Data Wizard Academy · Databricks Track · Módulo 4**
+# MAGIC `v2.0 · creada 2026-10-23 · actualizada 2026-11-06 (Gold pasó a la Sesión 20)`
 # MAGIC
-# MAGIC Hasta aquí construiste cada capa **a mano**: bundles de ingesta con Auto Loader (Bronze), notebooks con `foreachBatch` + `MERGE`,
-# MAGIC SCD2 y watermarks (Silver) y tablas de consumo (Gold). Hoy reconstruyes **todo eso en un solo pipeline declarativo**,
-# MAGIC partiendo de los mismos archivos de landing, y comparas cuánto código desaparece.
+# MAGIC Hasta aquí construiste cada capa **a mano**: bundles de ingesta con Auto Loader (Bronze) y notebooks con `foreachBatch` + `MERGE`,
+# MAGIC SCD2 y watermarks (Silver). Hoy reconstruyes **Bronze y Silver en un solo pipeline declarativo**, partiendo de los mismos
+# MAGIC archivos de landing, y comparas cuánto código desaparece. **La Sesión 20 le agrega Gold a este mismo pipeline**: no lo borres al terminar.
 # MAGIC
 # MAGIC **Cómo se trabaja:** este notebook explica cada paso y trae el código en un bloque 📋. Lo **copias a un archivo nuevo del
-# MAGIC pipeline**, das **Run pipeline** y vuelves aquí a validar con una celda ▶️. (Los mismos archivos ya están listos en
-# MAGIC `lakeflow/transformations/` del repo, por si quieres comparar.)
+# MAGIC pipeline**, das **Run pipeline** y vuelves aquí a validar con una celda ▶️. Los pasos 🖱️ son en la interfaz. (Los mismos archivos
+# MAGIC están en `lakeflow/transformations/` del repo, por si quieres comparar.)
 # MAGIC
-# MAGIC | Bloque | Pasos |
-# MAGIC |---|---|
-# MAGIC | Qué es Lakeflow y los tipos de fuente | Presentación |
-# MAGIC | **Bloque 1 · Bronze** | 0 landing · 1 crear el pipeline · 2-5 una fuente por paso |
-# MAGIC | **Bloque 2 · Silver** | 6 catálogos · 7 maestras SCD2 · 8 transaccional · 9 tipos de cambio · 10 cobranzas · 11 eventos |
-# MAGIC | **Bloque 3 · Gold y operación** | 12 Gold en SQL · 13 llega un lote nuevo · 14 lo que no escribiste · 15 job |
-# MAGIC | Cierre | Checklist y limpieza |
+# MAGIC | Bloque | Pasos | Min |
+# MAGIC |---|---|---|
+# MAGIC | Qué es Lakeflow y los tipos de fuente | Presentación | 20 |
+# MAGIC | **Bloque 1 · Bronze** | 0 landing · 1 crear el pipeline · 2-5 una fuente por paso | 40 |
+# MAGIC | **Bloque 2 · Silver** | 6 catálogos · 7 maestras SCD2 · 8 transaccional · 9 tipos de cambio · 10 cobranzas · 11 eventos | 75 |
+# MAGIC | **Bloque 3 · Operación** | 12 llega un lote nuevo · 13 lo que no escribiste · 14 job · 15 (reto) bundle | 35 |
+# MAGIC | Cierre | Checklist | 10 |
 
 # COMMAND ----------
 
@@ -31,7 +32,11 @@
 # MAGIC |---|---|---|
 # MAGIC | **Lakeflow Connect** | Conectores administrados (SQL Server, Salesforce…) | Se menciona: reemplazaría el extractor de la fuente 1 |
 # MAGIC | **Lakeflow Spark Declarative Pipelines** | Declaras **qué** tabla quieres; el pipeline resuelve **cómo** (orden, incrementalidad, checkpoints, reintentos) | El protagonista |
-# MAGIC | **Lakeflow Jobs** | Orquestar: programar y encadenar tareas | Paso 15 |
+# MAGIC | **Lakeflow Jobs** | Orquestar: programar y encadenar tareas | Paso 14 |
+# MAGIC
+# MAGIC > **Nombres:** en la documentación de 2026 el producto aparece como **Lakeflow pipelines** (antes *Delta Live Tables / DLT* y
+# MAGIC > *Lakeflow Declarative Pipelines*). *Spark Declarative Pipelines* es el estándar open source de Apache Spark que usa por debajo:
+# MAGIC > por eso el código importa `from pyspark import pipelines as dp`.
 # MAGIC
 # MAGIC ### Imperativo (lo que ya hiciste) vs declarativo (lo de hoy)
 # MAGIC | En el curso lo escribiste así | En un pipeline |
@@ -46,7 +51,7 @@
 # MAGIC | Objeto | Cómo lee la fuente | Cuándo | Aquí |
 # MAGIC |---|---|---|---|
 # MAGIC | **Streaming table** | `spark.readStream` (solo lo nuevo) | Datos que **llegan**: archivos, mensajes, Bronze | Todo Bronze, casi todo Silver |
-# MAGIC | **Materialized view** | `spark.read` / `SELECT` (completo) | Catálogos pequeños y agregados de Gold | países, campañas, Gold |
+# MAGIC | **Materialized view** | `spark.read` / `SELECT` (completo) | Catálogos pequeños y agregados de Gold | países, campañas (y todo Gold en la Sesión 20) |
 # MAGIC | **Temporary view** | cualquiera | Un paso intermedio que no se guarda | Tipar + expectations antes de AUTO CDC |
 
 # COMMAND ----------
@@ -63,24 +68,25 @@
 # MAGIC | 4 | **Bus de eventos** (Kafka, telemetría de la app) | `.parquet` con el registro de Kafka (`key`, `value`, `offset`…) en `wizard_bank_kafka/eventos_app/` | Los eventos **no cambian**, pero hay **duplicados**, **atrasados** y **payloads corruptos** | Auto Loader parquet con esquema fijo; `payload` sin interpretar | Streaming + `from_json` + watermark + `dropDuplicatesWithinWatermark`; sesiones con `session_window` |
 # MAGIC | — | **Catálogos** (países, campañas) | Dentro de la fuente 1 | Casi nunca cambian; son chicos | Auto Loader CSV | **Materialized view** (lectura completa) |
 # MAGIC
-# MAGIC ### Lo que vas a construir
+# MAGIC ### Lo que vas a construir hoy (Gold llega en la Sesión 20)
 # MAGIC ```
-# MAGIC  landing                               Bronze (_brz)                    Silver (_slv)                               Gold (_gld)
+# MAGIC  landing                               Bronze (_brz)                    Silver (_slv)                                 Sesión 20
 # MAGIC  wizard_bank_rdb/  ── Auto Loader ──►  paises, campanias        ─batch──► paises, campanias      (materialized view)
-# MAGIC   (base transaccional)                 clientes, productos      ─CDC 2──► clientes, productos    (SCD2)          ─► dim_cliente
-# MAGIC                                        ofertas, solicitudes,    ─CDC 1──► ofertas, solicitudes,  (último estado)  ─► fact_desembolsos ─► metricas_colocacion
+# MAGIC   (base transaccional)                 clientes, productos      ─CDC 2──► clientes, productos    (SCD2)            ─► dimensiones
+# MAGIC                                        ofertas, solicitudes,    ─CDC 1──► ofertas, solicitudes,  (último estado)   ─► hechos
 # MAGIC                                        desembolsos                        desembolsos + solicitudes_estados (SCD2)
 # MAGIC  wizard_bank_rdb/tipos_cambio ──────►  tipos_cambio             ─CDC 1──► tipos_cambio           (gana el último archivo)
 # MAGIC   (proveedor externo)
-# MAGIC  wizard_bank_onp/  ── Auto Loader ──►  cuotas, pagos, gestiones ─CDC/append► cuotas, pagos, gestiones                 ─► cartera_creditos
+# MAGIC  wizard_bank_onp/  ── Auto Loader ──►  cuotas, pagos, gestiones ─CDC/append► cuotas, pagos, gestiones                   ─► métricas
 # MAGIC   (legado on-premise)
-# MAGIC  wizard_bank_kafka/ ─ Auto Loader ──►  eventos_app (payload)    ─stream──► eventos_app (dedup) ─► sesiones_app        ─► metricas_funnel_app
+# MAGIC  wizard_bank_kafka/ ─ Auto Loader ──►  eventos_app (payload)    ─stream──► eventos_app (dedup) ─► sesiones_app          ─► features
 # MAGIC   (Kafka)
 # MAGIC ```
 
 # COMMAND ----------
 
-# Dónde vive todo (lo mismo que configurarás en el pipeline en el Paso 1)
+# Dónde vive todo (lo mismo que configurarás en el pipeline en el Paso 1).
+# Si comparten workspace, cada alumno usa su propio esquema (ej.: lakeflow_ana) aquí y en el pipeline.
 CATALOGO = "datawizard_dev"
 ESQUEMA = "lakeflow"
 LANDING = "s3://lakehouse-datawizard/landing"
@@ -107,7 +113,7 @@ for fuente in ["wizard_bank_rdb", "wizard_bank_onp", "wizard_bank_kafka"]:
 # MAGIC ## Paso 1 — Crear el pipeline 🖱️
 # MAGIC 1. En **Workspace**, entra a tu carpeta del curso → **Create** → **ETL pipeline**.
 # MAGIC 2. Nombre: `pipeline_wizard_bank_lakehouse` (convención del repo: `pipeline_<capa>_<fuente>_<función>`; aquí son todas las capas).
-# MAGIC 3. **Settings:** catálogo `datawizard_dev`, esquema `lakeflow`, cómputo **Serverless**.
+# MAGIC 3. **Settings:** catálogo `datawizard_dev`, esquema `lakeflow` (o el tuyo, si comparten workspace), cómputo **Serverless**.
 # MAGIC 4. **Settings → Configuration** → **Add configuration**: clave **`landing`**, valor `s3://lakehouse-datawizard/landing`.
 # MAGIC    Cada archivo la lee con `spark.conf.get("landing")`: así el mismo código sirve para otro bucket.
 # MAGIC 5. Si el editor trae archivos de ejemplo en `transformations/`, **bórralos**.
@@ -123,7 +129,7 @@ for fuente in ["wizard_bank_rdb", "wizard_bank_onp", "wizard_bank_kafka"]:
 # MAGIC el tipado es responsabilidad de Silver, como en el curso. Se agregan dos columnas de auditoría.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/01_bronze_lending.py`**
-{{01_bronze_lending.py}}
+{{transformations/01_bronze_lending.py}}
 # MAGIC Fíjate en lo que **no** está: ni `checkpointLocation`, ni `schemaLocation`, ni `writeStream`, ni `saveAsTable`.
 # MAGIC Compáralo con `bronze/lending/src/ingestion/autoloader.py`.
 # MAGIC
@@ -155,7 +161,7 @@ display(spark.sql(f"""
 # MAGIC subcarpetas (`recursiveFileLookup`) y **no** trae una fecha de modificación confiable. Guardamos `_ingestado_en`: será el desempate en Silver.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/02_bronze_tipos_cambio.py`**
-{{02_bronze_tipos_cambio.py}}
+{{transformations/02_bronze_tipos_cambio.py}}
 
 # COMMAND ----------
 
@@ -165,7 +171,7 @@ display(spark.sql(f"""
 # MAGIC (`fecha_modificacion`), un lote por noche. Por eso va en su propio archivo: si mañana el legado cambia, se toca solo este.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/03_bronze_cobranzas.py`**
-{{03_bronze_cobranzas.py}}
+{{transformations/03_bronze_cobranzas.py}}
 
 # COMMAND ----------
 
@@ -179,8 +185,8 @@ display(spark.sql(f"""
 # MAGIC El esquema del registro es **fijo**, por eso se declara con `.schema(...)` en vez de inferirlo.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/04_bronze_eventos_app.py`**
-{{04_bronze_eventos_app.py}}
-# MAGIC **Run pipeline.** Bronze completo: 14 tablas, cuatro fuentes.
+{{transformations/04_bronze_eventos_app.py}}
+# MAGIC **Run pipeline.** Bronze completo: 12 tablas, cuatro fuentes.
 
 # COMMAND ----------
 
@@ -216,7 +222,7 @@ display(spark.table(f"{CATALOGO}.{ESQUEMA}.eventos_app_brz").select("kafka_parti
 # MAGIC versión de cada clave. El pipeline mantiene la vista al día.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/05_silver_catalogos.py`**
-{{05_silver_catalogos.py}}
+{{transformations/05_silver_catalogos.py}}
 
 # COMMAND ----------
 
@@ -238,7 +244,7 @@ display(spark.table(f"{CATALOGO}.{ESQUEMA}.eventos_app_brz").select("kafka_parti
 # MAGIC De regalo: **`dim_productos`**, que en el curso no tenía notebook de Silver, sale con el mismo patrón.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/06_silver_maestras_scd2.py`**
-{{06_silver_maestras_scd2.py}}
+{{transformations/06_silver_maestras_scd2.py}}
 # MAGIC **Run pipeline** y valida:
 
 # COMMAND ----------
@@ -270,7 +276,7 @@ display(spark.sql(f"""
 # MAGIC `delta.enableChangeDataFeed` deja las tablas listas para que un consumidor lea **solo lo que cambió** (Sesión 18).
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/07_silver_transaccional.py`**
-{{07_silver_transaccional.py}}
+{{transformations/07_silver_transaccional.py}}
 
 # COMMAND ----------
 
@@ -295,7 +301,7 @@ display(spark.sql(f"""
 # MAGIC la versión correcta es **la del archivo que llegó después** → `sequence_by="_ingestado_en"`. La clave es compuesta: día + par de monedas.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/08_silver_tipos_cambio.py`**
-{{08_silver_tipos_cambio.py}}
+{{transformations/08_silver_tipos_cambio.py}}
 
 # COMMAND ----------
 
@@ -308,7 +314,7 @@ display(spark.sql(f"""
 # MAGIC | `gestiones` | Un hecho que no cambia | **Streaming table simple** (append) + expectations |
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/09_silver_cobranzas.py`**
-{{09_silver_cobranzas.py}}
+{{transformations/09_silver_cobranzas.py}}
 
 # COMMAND ----------
 
@@ -337,7 +343,7 @@ display(spark.sql(f"""
 # MAGIC   Es estado de streaming: una sesión se escribe cuando el watermark pasa su fin, por eso las más recientes aparecen en el siguiente update.
 # MAGIC
 # MAGIC 📋 Archivo nuevo: **`transformations/10_silver_eventos_app.py`**
-{{10_silver_eventos_app.py}}
+{{transformations/10_silver_eventos_app.py}}
 # MAGIC **Run pipeline** y abre **`eventos_app_slv` → Data quality**: verás cuántos payloads corruptos y tipos desconocidos se descartaron.
 
 # COMMAND ----------
@@ -348,35 +354,21 @@ display(spark.sql(f"""
          (SELECT count(DISTINCT id_evento) FROM {CATALOGO}.{ESQUEMA}.eventos_app_slv) AS eventos_unicos,
          (SELECT count(*) FROM {CATALOGO}.{ESQUEMA}.sesiones_app_slv)             AS sesiones"""))
 
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **Run pipeline** dos veces seguidas y vuelve a correr la celda: `sesiones` crece en el segundo update. Las sesiones se escriben
+# MAGIC cuando el watermark pasa su fin (modo append), por eso las más recientes aparecen un update después.
+# MAGIC
+# MAGIC **Silver completo.** En el grafo: 4 fuentes → 12 Bronze → 14 Silver (2 materialized views, 12 streaming tables).
+
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ---
-# MAGIC ## ▶️ BLOQUE 3 · Gold y operación
-# MAGIC ## Paso 12 — Gold en SQL: materialized views
-# MAGIC Gold une y agrega datasets **completos**: no se lee en streaming. Una **materialized view** en SQL se refresca en cada update
-# MAGIC (incremental cuando puede). Un pipeline mezcla `.py` y `.sql` sin problema: el grafo los une por nombre.
-# MAGIC Las expectations también existen en SQL (`CONSTRAINT … EXPECT`).
-# MAGIC
-# MAGIC 📋 Archivo nuevo: **`transformations/11_gold.sql`**
-{{11_gold.sql}}
-# MAGIC **Run pipeline.** El grafo queda completo: 4 fuentes → 14 Bronze → Silver → 5 Gold.
-
-# COMMAND ----------
-
-display(spark.sql(f"SELECT * FROM {CATALOGO}.{ESQUEMA}.metricas_colocacion_mensual_gld ORDER BY mes DESC, pais LIMIT 9"))
-
-# COMMAND ----------
-
-display(spark.sql(f"""
-  SELECT ubicacion_pantalla, sum(vistas) AS vistas, sum(clicks) AS clicks,
-         round(try_divide(sum(clicks), sum(vistas)), 4) AS ctr
-  FROM {CATALOGO}.{ESQUEMA}.metricas_funnel_app_diario_gld GROUP BY 1 ORDER BY ctr DESC"""))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Paso 13 — Llega un lote nuevo: el pipeline procesa solo lo nuevo
+# MAGIC ## ▶️ BLOQUE 3 · Operación
+# MAGIC ## Paso 12 — Llega un lote nuevo: el pipeline procesa solo lo nuevo
 # MAGIC 1. **Run pipeline** otra vez, sin archivos nuevos: en el grafo, cada streaming table procesa **0 filas** (idempotente).
 # MAGIC 2. Simula la llegada de datos (elige uno):
 # MAGIC    - **Kafka:** corre el job `job_datagen_eventos_app_emit` (bundle `bundle_datagen`) un par de minutos: escribe `.parquet` nuevos con duplicados y atrasados.
@@ -392,31 +384,44 @@ display(spark.sql(f"DESCRIBE HISTORY {CATALOGO}.{ESQUEMA}.solicitudes_prestamo_s
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Paso 14 — Lo que no escribiste
+# MAGIC ## Paso 13 — Lo que no escribiste
 # MAGIC | En el curso lo escribiste tú | En el pipeline |
 # MAGIC |---|---|
 # MAGIC | `checkpointLocation` y `schemaLocation` por cada stream (`checkpoint/…`, `schemas/…` en S3) | Los administra el pipeline, uno por flow |
 # MAGIC | Reintento ante columnas nuevas (`UNKNOWN_FIELD_EXCEPTION`) | El pipeline reinicia el flow solo |
-# MAGIC | Orden de ejecución: Bronze → Silver → Gold en un job | El grafo, deducido de las lecturas |
+# MAGIC | Orden de ejecución: Bronze → Silver en un job | El grafo, deducido de las lecturas |
 # MAGIC | `foreachBatch` + deduplicar + `MERGE` con guarda | `create_auto_cdc_flow` |
 # MAGIC | SCD2: hash, cerrar y abrir versiones | `stored_as_scd_type=2` + `track_history_column_list` |
 # MAGIC | Tabla `_cuarentena` y conteos | Expectations + Data quality + event log |
 # MAGIC | `OPTIMIZE` periódico | Lo corre el pipeline |
 # MAGIC
-# MAGIC **El event log** registra cada update, flow y métrica de calidad, y se consulta con SQL:
-# MAGIC ```sql
-# MAGIC SELECT timestamp, event_type, message
-# MAGIC FROM event_log(TABLE(datawizard_dev.lakeflow.eventos_app_slv))
-# MAGIC ORDER BY timestamp DESC LIMIT 20
-# MAGIC ```
-# MAGIC
+# MAGIC **El event log** registra cada update, flow y métrica de calidad, y se consulta con SQL. La celda de abajo saca, de la última
+# MAGIC corrida, cuántas filas pasaron y cuántas descartó cada expectation de `eventos_app_slv`:
+
+# COMMAND ----------
+
+# Cada update deja un evento flow_progress con las métricas de cada expectation (el mismo dato de la pestaña Data quality)
+display(spark.sql(f"""
+  SELECT timestamp, e.dataset, e.name AS expectation, e.passed_records AS pasaron, e.failed_records AS no_cumplen
+  FROM (
+    SELECT timestamp,
+           explode(from_json(details:flow_progress:data_quality:expectations,
+                   'array<struct<name: string, dataset: string, passed_records: bigint, failed_records: bigint>>')) AS e
+    FROM event_log(TABLE({CATALOGO}.{ESQUEMA}.eventos_app_slv))
+    WHERE event_type = 'flow_progress'
+  )
+  ORDER BY timestamp DESC LIMIT 10"""))
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC **Lo que sigue siendo tuyo:** decidir el tipo de fuente, la clave, el orden (`sequence_by`), qué columnas son Tipo 2 y qué reglas de calidad aplican.
 # MAGIC Eso es diseño, y el pipeline no lo adivina.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Paso 15 — Programarlo con un Lakeflow Job 🖱️
+# MAGIC ## Paso 14 — Programarlo con un Lakeflow Job 🖱️
 # MAGIC 1. **Jobs & Pipelines** → **Create** → **Job**: `job_lakehouse_wizard_bank_refresh`.
 # MAGIC 2. Una tarea tipo **Pipeline** → `pipeline_wizard_bank_lakehouse`.
 # MAGIC 3. **Schedules & Triggers** → *File arrival* sobre `s3://lakehouse-datawizard/landing/`: el pipeline corre cuando cae un archivo.
@@ -427,33 +432,58 @@ display(spark.sql(f"DESCRIBE HISTORY {CATALOGO}.{ESQUEMA}.solicitudes_prestamo_s
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Paso 15 (reto) — Del editor al bundle
+# MAGIC En clase el pipeline se crea en la UI para ver el grafo crecer. En producción vive en un **bundle** (Sesión 13): la carpeta
+# MAGIC `lakeflow/` del repo ya lo es. Tiene el pipeline y el job del paso 14 como recursos, y lee **todo** `transformations/`.
+# MAGIC
+# MAGIC | Archivo | Qué declara |
+# MAGIC |---|---|
+# MAGIC | `lakeflow/databricks.yml` | Variables `catalog`, `schema`, `landing` y los targets `dev` / `prod` |
+# MAGIC | `lakeflow/resources/pipeline_wizard_bank_lakehouse.yml` | El pipeline (serverless, `configuration.landing`, `libraries: glob transformations/**`) |
+# MAGIC | `lakeflow/resources/job_lakehouse_wizard_bank_refresh.yml` | El job con disparador *file arrival* (pausado en `dev`) |
+# MAGIC | `lakeflow/resources/schema_lakeflow.yml` | El esquema donde publica el pipeline del bundle |
+# MAGIC
+# MAGIC ```bash
+# MAGIC cd lakeflow
+# MAGIC databricks bundle validate -t dev
+# MAGIC databricks bundle deploy -t dev                 # crea "[dev <tu usuario>] pipeline_wizard_bank_lakehouse"
+# MAGIC databricks bundle run pipeline_wizard_bank_lakehouse -t dev
+# MAGIC ```
+# MAGIC El bundle despliega **su propio** pipeline (con prefijo `[dev …]`), distinto del que creaste en la UI. Dos pipelines no pueden ser
+# MAGIC dueños de la misma tabla: por eso el bundle crea **su propio esquema** (`resources/schema_lakeflow.yml`). En `dev`, el modo
+# MAGIC development le antepone tu usuario: queda `dev_<tu_usuario>_lakeflow_bundle`. `databricks bundle destroy -t dev` borra todo.
+# MAGIC Ojo: `transformations/` ya trae los archivos de Gold de la Sesión 20, así que el bundle despliega el pipeline completo.
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ---
 # MAGIC ## Cierre — Checklist
 # MAGIC | Capa | Objetos | Listo si… |
 # MAGIC |---|---|---|
-# MAGIC | Bronze | 14 streaming tables `_brz` | Todas con filas; `clientes_brz` con las columnas de v2 |
+# MAGIC | Bronze | 12 streaming tables `_brz` | Todas con filas; `clientes_brz` con las columnas de v2 |
 # MAGIC | Silver catálogos | `paises_slv`, `campanias_slv` | Materialized views con una fila por clave |
 # MAGIC | Silver maestras | `clientes_slv`, `productos_slv` | Versiones cerradas con `__END_AT` |
 # MAGIC | Silver transaccional | `ofertas`, `solicitudes`, `desembolsos`, `solicitudes_estados` | Una fila por clave; historial con varios estados |
 # MAGIC | Silver externa / legado | `tipos_cambio_slv`, `cuotas_slv`, `pagos_slv`, `gestiones_cobranza_slv` | Pagos sin duplicados |
 # MAGIC | Silver Kafka | `eventos_app_slv`, `sesiones_app_slv` | Eventos únicos; descartes en Data quality |
-# MAGIC | Gold | 5 materialized views `_gld` | Colocación en USD y CTR por ubicación |
 # MAGIC
 # MAGIC - [ ] Sé decir qué tipo de fuente es cada carpeta de landing y por qué eso decide el objeto
 # MAGIC - [ ] Sé cuándo usar streaming table, materialized view, temporary view y AUTO CDC (tipo 1 y 2)
 # MAGIC - [ ] El segundo update procesó solo lo nuevo
+# MAGIC - [ ] Leí las métricas de calidad en el event log
 
 # COMMAND ----------
 
-for t in ["clientes_slv", "productos_slv", "ofertas_preaprobadas_slv", "solicitudes_prestamo_slv", "solicitudes_estados_slv",
-          "desembolsos_slv", "tipos_cambio_slv", "cuotas_slv", "pagos_slv", "gestiones_cobranza_slv",
-          "eventos_app_slv", "sesiones_app_slv", "dim_cliente_gld", "fact_desembolsos_gld", "cartera_creditos_gld"]:
+for t in ["paises_slv", "campanias_slv", "clientes_slv", "productos_slv", "ofertas_preaprobadas_slv", "solicitudes_prestamo_slv",
+          "solicitudes_estados_slv", "desembolsos_slv", "tipos_cambio_slv", "cuotas_slv", "pagos_slv", "gestiones_cobranza_slv",
+          "eventos_app_slv", "sesiones_app_slv"]:
     print(f"{t:28} {spark.table(f'{CATALOGO}.{ESQUEMA}.{t}').count():>8,} filas")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 🧹 Limpieza
-# MAGIC Las tablas del pipeline **le pertenecen al pipeline**: se borran borrándolo.
-# MAGIC **Jobs & Pipelines** → `pipeline_wizard_bank_lakehouse` → ⋮ → **Delete**. Se van todas sus tablas de `datawizard_dev.lakeflow`.
-# MAGIC Los archivos de landing **no** se tocan: son la fuente de todo el curso.
+# MAGIC ## ⚠️ No borres el pipeline
+# MAGIC La **Sesión 20** le agrega Gold, métricas y feature tables a este mismo `pipeline_wizard_bank_lakehouse`, leyendo las Silver de hoy.
+# MAGIC Las tablas del pipeline **le pertenecen al pipeline**: si lo borras, se van todas las de `datawizard_dev.lakeflow`.
+# MAGIC La limpieza está al final de la Sesión 20.2. Los archivos de landing **no** se tocan nunca: son la fuente de todo el curso.

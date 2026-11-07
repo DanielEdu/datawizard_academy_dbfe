@@ -1,6 +1,8 @@
 # Notebooks de Gold (paso a paso)
 
-Un notebook por escenario y patrón de Gold, con las Sesiones 18, 19 y 20. Cada uno parte de Silver y construye
+Un notebook por escenario y patrón de Gold, de la **Sesión 18** (Gold imperativo + optimización). La **Sesión 20** reconstruye
+este mismo Gold de forma declarativa dentro del pipeline (`lakeflow/transformations/11_*`–`15_*`, guía en `notebooks/sesion-20-gold-metricas-features/`);
+estos notebooks quedan como la versión "a mano" para comparar. Cada uno parte de Silver y construye
 las tablas Gold **celda por celda**, sin funciones ni widgets: se lee de arriba abajo. El foco está en la
 **feature de Databricks** que cada tabla ejercita (cada notebook termina con la tabla de features usadas).
 
@@ -8,11 +10,11 @@ las tablas Gold **celda por celda**, sin funciones ni widgets: se lee de arriba 
 |---|---|---|---|---|
 | `01_lending_modelo_estrella.py` | Lending | `dim_pais`, `dim_campania`, `dim_tiempo`, `dim_cliente`, `fact_ofertas`, `fact_solicitudes`, `fact_desembolsos` | Esquema estrella: CTAS, `CLUSTER BY`, join punto-en-el-tiempo contra SCD2, `LEFT JOIN LATERAL` (tipo de cambio), `PRIMARY/FOREIGN KEY` | S18 |
 | `02_lending_cdf.py` | Lending | `dim_cliente_vigente`, `cola_sync_crm` | Change Data Feed: `delta.enableChangeDataFeed`, `MERGE`, `DESCRIBE HISTORY`, `table_changes()`, `readChangeFeed` incremental | S18 |
-| `03_lending_metricas.py` | Lending | `metricas_originacion_mensual`, `metricas_colocacion_mensual`, `metricas_roi_campania`, `mv_colocacion` | Capa de métricas: vistas como definición única, `INSERT … REPLACE WHERE`, `MERGE … NOT MATCHED BY SOURCE`, **Metric View** + `MEASURE()` | S20 |
-| `04_cobranzas_tabla_ancha.py` | Cobranzas | `cartera_creditos`, `snapshot_cartera_tramos` | Tabla ancha para ML: `count_if`, `FILTER`, `max_by`, `mode`; snapshot idempotente con `REPLACE WHERE` + variable de sesión | S18 / S20 |
-| `05_cobranzas_optimizacion.py` | Cobranzas | `fact_cuotas_lenta`, `fact_cuotas_lc` | Optimización: `OPTIMIZE`, **Liquid Clustering** (`CLUSTER BY`, `ALTER … CLUSTER BY`, `AUTO`), `ANALYZE TABLE`, `VACUUM`; ZORDER solo como legado | S19 |
-| `06_app_metricas.py` | App | `metricas_funnel_diario`, `metricas_sesiones_segmento` | Métricas de eventos: `count_if`, `GROUP BY ALL`, dimensión conforme (`dim_cliente`) | S20 |
-| `06b_app_mv_ctr_ubicacion.sql` | App | `mv_ctr_ubicacion` | **Materialized View** + `REFRESH` (se ejecuta en el SQL Editor, no en un notebook) | S20 |
+| `03_lending_metricas.py` | Lending | `metricas_originacion_mensual`, `metricas_colocacion_mensual`, `metricas_roi_campania`, `mv_colocacion` | Capa de métricas: vistas como definición única, `INSERT … REPLACE WHERE`, `MERGE … NOT MATCHED BY SOURCE`, **Metric View** + `MEASURE()` | S18 |
+| `04_cobranzas_tabla_ancha.py` | Cobranzas | `cartera_creditos`, `snapshot_cartera_tramos` | Tabla ancha para ML: `count_if`, `FILTER`, `max_by`, `mode`; snapshot idempotente con `REPLACE WHERE` + variable de sesión | S18 |
+| `05_cobranzas_optimizacion.py` | Cobranzas | `fact_cuotas_lenta`, `fact_cuotas_lc` | Optimización: `OPTIMIZE`, **Liquid Clustering** (`CLUSTER BY`, `ALTER … CLUSTER BY`, `AUTO`), `ANALYZE TABLE`, `VACUUM`; ZORDER solo como legado | S18 |
+| `06_app_metricas.py` | App | `metricas_funnel_diario`, `metricas_sesiones_segmento` | Métricas de eventos: `count_if`, `GROUP BY ALL`, dimensión conforme (`dim_cliente`) | S18 |
+| `06b_app_mv_ctr_ubicacion.sql` | App | `mv_ctr_ubicacion` | **Materialized View** + `REFRESH` (se ejecuta en el SQL Editor, no en un notebook) | S18 |
 
 ## Orden y dependencias
 
