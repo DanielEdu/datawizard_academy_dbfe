@@ -3,7 +3,7 @@
 resources:
   pipelines:
     pipeline_wizard_bank_lakehouse:
-      name: pipeline_wizard_bank_lakehouse
+      name: pipeline_wizard_bank_lakehouse_${bundle.target}   # _dev o _prod: se distinguen en la UI
       catalog: ${var.catalog}
       schema: ${resources.schemas.schema_lakeflow.name}   # depende del esquema del bundle: se crea antes
       serverless: true

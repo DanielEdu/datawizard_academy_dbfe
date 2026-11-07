@@ -994,12 +994,12 @@ display(spark.sql(f"""
 # MAGIC ```bash
 # MAGIC cd lakeflow
 # MAGIC databricks bundle validate -t dev
-# MAGIC databricks bundle deploy -t dev                 # crea "[dev <tu usuario>] pipeline_wizard_bank_lakehouse"
+# MAGIC databricks bundle deploy -t dev                 # crea "pipeline_wizard_bank_lakehouse_dev"
 # MAGIC databricks bundle run pipeline_wizard_bank_lakehouse -t dev
 # MAGIC ```
-# MAGIC El bundle despliega **su propio** pipeline (con prefijo `[dev …]`), distinto del que creaste en la UI. Dos pipelines no pueden ser
-# MAGIC dueños de la misma tabla: por eso el bundle crea **su propio esquema** (`resources/schema_lakeflow.yml`). En `dev`, el modo
-# MAGIC development le antepone tu usuario: queda `dev_<tu_usuario>_lakeflow_bundle`. `databricks bundle destroy -t dev` borra todo.
+# MAGIC El bundle despliega **su propio** pipeline (terminado en `_dev`), distinto del que creaste en la UI. Dos pipelines no pueden ser
+# MAGIC dueños de la misma tabla: por eso el bundle crea **su propio esquema** (`resources/schema_lakeflow.yml`): en `dev` queda
+# MAGIC `lending_dev`, separado de tu `lending`. `databricks bundle destroy -t dev` borra todo.
 # MAGIC Ojo: `transformations/` ya trae los archivos de Gold de la Sesión 20, así que el bundle despliega el pipeline completo.
 
 # COMMAND ----------

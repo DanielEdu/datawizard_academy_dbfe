@@ -34,8 +34,10 @@
 # MAGIC |---|---|---|
 # MAGIC | Para qué | Probar cambios sin miedo | Lo que usa el negocio (Genie, dashboards) |
 # MAGIC | Quién despliega | Cada desarrollador, desde su máquina | Solo el pipeline de CI/CD |
-# MAGIC | Nombre de los recursos | `[dev tu_usuario] pipeline_…` | `pipeline_wizard_bank_lakehouse` |
-# MAGIC | Dónde publica | `dev_<tu_usuario>_lakeflow_bundle` | `wizard_bank_lakehouse` |
+# MAGIC | Nombre de los recursos | `pipeline_wizard_bank_lakehouse_dev` | `pipeline_wizard_bank_lakehouse_prod` |
+# MAGIC | Dónde publica | `lending_dev` | `lending_prod` |
+# MAGIC
+# MAGIC Tu esquema `lending` (Sesiones 19 a 21) no es ninguno de los dos: lo armó a mano un pipeline de la UI. Desde hoy, dev y prod los crea el código.
 # MAGIC
 # MAGIC El **mismo** código va a los dos: lo que cambia son variables (esquema, nombres, quién corre). Eso es lo que declara `databricks.yml`.
 # MAGIC
@@ -49,9 +51,8 @@
 # COMMAND ----------
 
 CATALOGO = "datawizard_dev"
-ESQUEMA_PROD = "wizard_bank_lakehouse"
-yo = spark.sql("SELECT current_user()").first()[0]
-ESQUEMA_DEV = "dev_" + yo.split("@")[0].replace(".", "_") + "_lakeflow_bundle"   # el prefijo que pone el modo development
+ESQUEMA_DEV = "lending_dev"     # variable schema del target dev en databricks.yml
+ESQUEMA_PROD = "lending_prod"   # variable schema del target prod
 print("dev :", f"{CATALOGO}.{ESQUEMA_DEV}")
 print("prod:", f"{CATALOGO}.{ESQUEMA_PROD}")
 
@@ -79,18 +80,24 @@ print("prod:", f"{CATALOGO}.{ESQUEMA_PROD}")
 # MAGIC ```yaml
 # MAGIC targets:
 # MAGIC   dev:
-# MAGIC     mode: development          # prefijo [dev usuario], pipeline en modo development, triggers pausados
-# MAGIC     default: true
+# MAGIC     default: true              # el target si no pasas -t
+# MAGIC     presets:
+# MAGIC       pipelines_development: true   # pipeline en modo development
+# MAGIC       trigger_pause_status: PAUSED  # el job no corre solo en dev
 # MAGIC   prod:
-# MAGIC     mode: production           # nombres sin prefijo; el bundle exige que nadie lo despliegue "a medias"
+# MAGIC     mode: production           # el bundle exige que nadie lo despliegue "a medias"
 # MAGIC     variables:
-# MAGIC       schema: wizard_bank_lakehouse
+# MAGIC       schema: lending_prod     # dev usa el default de la variable: lending_dev
 # MAGIC     resources:
 # MAGIC       jobs:
 # MAGIC         job_lakehouse_wizard_bank_refresh:
 # MAGIC           trigger:
 # MAGIC             pause_status: PAUSED   # en el curso: que prod no corra solo con cada archivo
 # MAGIC ```
+# MAGIC
+# MAGIC > ¿Por qué dev no usa `mode: development`? Ese modo antepone `dev_<usuario>_` a los esquemas (quedaría `dev_tu_usuario_lending_dev`).
+# MAGIC > Aquí cada alumno tiene su propio workspace, así que tomamos de ese modo solo lo útil, explícito en `presets`. En una empresa,
+# MAGIC > con varios desarrolladores en el mismo workspace, se deja `mode: development` para que cada uno tenga su dev aislado.
 # MAGIC
 # MAGIC | Archivo | Qué es | Igual en dev y prod |
 # MAGIC |---|---|---|

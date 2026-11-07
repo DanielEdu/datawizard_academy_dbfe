@@ -45,7 +45,8 @@ comentarios en español. Todo en `snake_case`, minúsculas, sin tildes ni espaci
   del mismo bundle se añade la persona a la fuente (`cobranzas_jhersson`).
 - `<acción>`: verbo corto (`ingest`, `deploy`, `refresh`, `dq`).
 - Sufijos de capa en tablas: `_brz`, `_slv`, `_gld`.
-- **Sin sufijo de entorno** (`_dev`, `_prod`): `mode: development` ya antepone `[dev <usuario>]`.
+- **Sin sufijo de entorno** (`_dev`, `_prod`): `mode: development` ya antepone `[dev <usuario>]`. Excepción: el bundle
+  `lakeflow/` no usa `mode: development` en dev; sus esquemas son `lending_dev`/`lending_prod` y sus nombres llevan `_${bundle.target}`.
 - **No cambiar la clave de un recurso ya desplegado**: el bundle lo trata como uno nuevo, destruye el
   anterior y pierde su historial de runs. Renombrar solo `name:` renombra sin recrear.
 - Tasks: el verbo dice qué hace (`ingest`, `setup`, `validate`, `merge`) y el objeto sobre qué (`ingest_pagos`, `setup_schemas_silver`). Sin prefijo `task_`, sin nombre del job ni de la capa si ya van en el job. En un job de DDL con una task por tabla, el `task_key` es el nombre de la tabla (`pagos_brz`), igual que su `.sql`. Cambiar un `task_key` recrea la task y reinicia su historial.

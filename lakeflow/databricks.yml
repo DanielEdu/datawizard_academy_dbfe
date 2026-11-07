@@ -12,20 +12,26 @@ variables:
     description: Catálogo donde el pipeline publica todas sus tablas.
     default: datawizard_dev
   schema:
-    description: Esquema del pipeline. Dos pipelines no pueden ser dueños de la misma tabla, así que no reutilices el del pipeline creado en la UI.
-    default: lakeflow_bundle
+    description: Esquema del pipeline en cada ambiente. Dos pipelines no pueden ser dueños de la misma tabla, así que no reutilices el del pipeline creado en la UI (lending).
+    default: lending_dev
   landing:
     description: Raíz de landing. El acceso va por la external location de Unity Catalog (sin credenciales aquí).
     default: s3://lakehouse-datawizard/landing
 
 targets:
   dev:
-    # Recursos con prefijo '[dev <usuario>]', pipeline en modo development y triggers pausados.
-    mode: development
+    # Sin `mode: development`: ese modo antepone dev_<usuario>_ a los esquemas y aquí queremos lending_dev a secas.
+    # Tomamos de él solo lo útil, explícito en presets. Contra: dos personas en el mismo workspace compartirían lending_dev.
     default: true
+    presets:
+      pipelines_development: true     # el pipeline corre en modo development (reintentos cortos, cluster que no se apaga al toque)
+      trigger_pause_status: PAUSED    # el job no corre solo en dev
+      tags:
+        ambiente: dev
     workspace:
       host: https://dbc-dfb14324-e95d.cloud.databricks.com
       profile: free-edition
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
   prod:
     mode: production
@@ -34,7 +40,7 @@ targets:
       profile: free-edition
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
-      schema: wizard_bank_lakehouse
+      schema: lending_prod
     resources:
       jobs:
         job_lakehouse_wizard_bank_refresh:

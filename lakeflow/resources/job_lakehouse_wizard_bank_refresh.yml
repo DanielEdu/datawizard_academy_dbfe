@@ -3,7 +3,7 @@
 resources:
   jobs:
     job_lakehouse_wizard_bank_refresh:
-      name: job_lakehouse_wizard_bank_refresh
+      name: job_lakehouse_wizard_bank_refresh_${bundle.target}
       max_concurrent_runs: 1
       trigger:
         file_arrival:

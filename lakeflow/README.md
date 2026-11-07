@@ -49,8 +49,8 @@ Cruce clave entre sistemas: `numero_credito` del legado de cobranzas = `id_desem
 - Source: la carpeta `transformations/`
 
 Con el bundle (`cd lakeflow && databricks bundle validate -t dev && databricks bundle deploy -t dev`) el pipeline publica en su
-propio esquema, que el bundle crea (`resources/schema_lakeflow.yml`): en `dev` queda `dev_<usuario>_lakeflow_bundle` (el modo development
-antepone el usuario) y en `prod`, `wizard_bank_lakehouse`. Así no choca con el pipeline creado en la UI. `databricks bundle destroy -t dev`
+propio esquema, que el bundle crea (`resources/schema_lakeflow.yml`): en `dev` queda `lending_dev` (el target dev no usa
+`mode: development`, que antepondría el usuario) y en `prod`, `lending_prod`. Así no choca con el pipeline creado en la UI. `databricks bundle destroy -t dev`
 borra el pipeline, el job y el esquema con todas sus tablas.
 
 ## Estado de validación
