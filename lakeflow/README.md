@@ -7,7 +7,7 @@ Parte de los mismos archivos de landing que usan los bundles de `bronze/` y los 
 Las **guías paso a paso** que sigue el alumno no están aquí: viven en [`notebooks/`](../notebooks/README.md), una carpeta por sesión.
 Este directorio es el código que el alumno pega en su pipeline y, a la vez, un bundle desplegable.
 
-| Ruta | Qué es | Sesión |
+| Ruta | Qué es | Sesión. |
 |---|---|---|
 | `transformations/01_*` … `10_*` | Bronze (4 fuentes) y Silver (14 tablas) | 19 |
 | `transformations/11_gold_dimensiones.sql` | 6 dimensiones: país, campaña, producto, tiempo, cliente (SCD2, `sk_cliente`), tipo de cambio con vigencia | 20 |
