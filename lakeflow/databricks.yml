@@ -35,3 +35,10 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
       schema: wizard_bank_lakehouse
+    resources:
+      jobs:
+        job_lakehouse_wizard_bank_refresh:
+          trigger:
+            # En el curso el job de prod queda pausado: no corre solo cada vez que cae un archivo en landing (costo).
+            # En una empresa se quita esta línea y prod se actualiza con cada llegada de datos.
+            pause_status: PAUSED

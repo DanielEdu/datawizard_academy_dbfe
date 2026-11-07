@@ -17,6 +17,8 @@ Este directorio es el código que el alumno pega en su pipeline y, a la vez, un 
 | `transformations/15_gold_features.py` | 2 feature tables con llave `TIMESERIES`: `features_cliente_mes_gld`, `features_app_cliente_dia_gld` | 20 |
 | `metric_views/kpi_colocacion.sql`, `kpi_funnel_app.sql` | Metric views (YAML) sobre Gold. **No** son parte del pipeline: se crean con SQL | 20 |
 | `mejoras_genie/` | Versiones de `13`, `14` y `kpi_colocacion` con comentario por columna, llaves y sinónimos | 20.2 |
+| `gobierno/` | Funciones de row filter y column mask, la cartera con esas políticas (`14_gold_cartera.sql`) y la vista para BI | 21 |
+| `ci/lakeflow-ci.yml` | Plantilla de GitHub Actions: validar en cada PR y desplegar a prod en cada merge a `main` | 21.2 |
 | `databricks.yml` + `resources/` | Bundle: el esquema, el pipeline y el job con disparador *file arrival* | 19 (reto) |
 
 ## Fuentes y patrones
@@ -43,6 +45,7 @@ Cruce clave entre sistemas: `numero_credito` del legado de cobranzas = `id_desem
 
 - Nombre: `pipeline_wizard_bank_lakehouse` · catálogo `datawizard_dev`, esquema `lakeflow` (uno por alumno si comparten workspace) · **serverless**
 - Configuration: `landing = s3://lakehouse-datawizard/landing`
+- Configuration (desde la Sesión 21): `politicas = <catálogo>.<esquema>` donde viven las funciones de row filter y mask. El bundle la arma sola
 - Source: la carpeta `transformations/`
 
 Con el bundle (`cd lakeflow && databricks bundle validate -t dev && databricks bundle deploy -t dev`) el pipeline publica en su

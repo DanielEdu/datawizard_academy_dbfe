@@ -19,6 +19,8 @@ GUIAS = {
     "sesion-19-lakeflow-bronze-silver": "00_paso_a_paso_lakeflow.py",
     "sesion-20-gold-metricas-features": "00_paso_a_paso_gold.py",
     "sesion-20.2-genie": "00_paso_a_paso_genie.py",
+    "sesion-21-unity-catalog-gobierno": "00_paso_a_paso_gobierno.py",
+    "sesion-21.2-cicd-ambientes": "00_paso_a_paso_cicd.py",
 }
 
 
@@ -54,6 +56,6 @@ for carpeta, salida in GUIAS.items():
     plantilla = AQUI / carpeta / "_plantilla.py"
     if not plantilla.exists():
         continue
-    texto = re.sub(r"\{\{(.+?)\}\}", reemplazar, plantilla.read_text())
+    texto = re.sub(r"\{\{((?:ejecutar:)?[\w./-]+\.(?:py|sql|yml))\}\}", reemplazar, plantilla.read_text())   # solo rutas: ${{ secrets.X }} de GitHub no es una marca
     (AQUI / carpeta / salida).write_text(texto)
     print(f"ok: {carpeta}/{salida}")

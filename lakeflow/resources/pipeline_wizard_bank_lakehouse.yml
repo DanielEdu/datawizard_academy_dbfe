@@ -10,6 +10,7 @@ resources:
       channel: CURRENT
       configuration:
         landing: ${var.landing}
+        politicas: ${var.catalog}.${resources.schemas.schema_lakeflow.name}   # dónde viven las funciones de row filter y mask (S21)
       libraries:
         - glob:
             include: ../transformations/**

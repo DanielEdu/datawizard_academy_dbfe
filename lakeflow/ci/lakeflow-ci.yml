@@ -1,0 +1,57 @@
+# Sesión 21.2 · CI/CD del bundle lakeflow con GitHub Actions.
+# PLANTILLA: cópiala a .github/workflows/lakeflow-ci.yml en TU fork del repo (aquí no corre: GitHub solo ejecuta .github/workflows/).
+#
+#   Pull request que toca lakeflow/  → job "validar": databricks bundle validate -t prod
+#   Push (merge) a main              → job "desplegar": databricks bundle deploy -t prod
+#
+# Secretos del repo (Settings → Secrets and variables → Actions):
+#   DATABRICKS_HOST   https://<tu-workspace>.cloud.databricks.com
+#   DATABRICKS_TOKEN  token personal (User Settings → Developer → Access tokens). En una empresa: service principal + OAuth.
+name: lakeflow-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["lakeflow/**", ".github/workflows/lakeflow-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["lakeflow/**", ".github/workflows/lakeflow-ci.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lakeflow-${{ github.ref }}
+  cancel-in-progress: false      # nunca cortar un deploy a medias
+
+defaults:
+  run:
+    working-directory: lakeflow
+
+jobs:
+  validar:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      # databricks.yml nombra el perfil "free-edition": se crea con los secretos, igual que el de tu máquina
+      - name: Credenciales del workspace
+        run: |
+          printf '[free-edition]\nhost = %s\ntoken = %s\n' "${{ secrets.DATABRICKS_HOST }}" "${{ secrets.DATABRICKS_TOKEN }}" > ~/.databrickscfg
+      - name: Validar el bundle contra prod
+        run: databricks bundle validate -t prod
+
+  desplegar:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Credenciales del workspace
+        run: |
+          printf '[free-edition]\nhost = %s\ntoken = %s\n' "${{ secrets.DATABRICKS_HOST }}" "${{ secrets.DATABRICKS_TOKEN }}" > ~/.databrickscfg
+      - name: Validar
+        run: databricks bundle validate -t prod
+      - name: Desplegar a prod
+        run: databricks bundle deploy -t prod

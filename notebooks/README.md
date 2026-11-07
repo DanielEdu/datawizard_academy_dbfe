@@ -12,9 +12,11 @@ Los pasos 🖱️ son en la interfaz.
 | 19 · Lakeflow: Bronze y Silver | `sesion-19-lakeflow-bronze-silver/` | `00_paso_a_paso_lakeflow.py` | `pipeline_wizard_bank_lakehouse` con 12 Bronze y 14 Silver |
 | 20 · Gold, métricas y features | `sesion-20-gold-metricas-features/` | `00_paso_a_paso_gold.py` | En el mismo pipeline: estrella, 4 métricas, cartera, 2 feature tables; y 2 metric views |
 | 20.2 · Genie | `sesion-20.2-genie/` | `00_paso_a_paso_genie.py` | Genie Agent con benchmark antes/después, metadatos mejorados, Genie One |
+| 21 · Unity Catalog | `sesion-21-unity-catalog-gobierno/` | `00_paso_a_paso_gobierno.py` | Grupos de cuenta y `GRANT`, row filter y column mask en la cartera (declarados en el pipeline), vista para BI, linaje, auditoría y secret scope |
+| 21.2 · CI/CD | `sesion-21.2-cicd-ambientes/` | `00_paso_a_paso_cicd.py` | El bundle `lakeflow/` de dev a prod con GitHub Actions: validar en el PR, desplegar al fusionar a `main` |
 
-Las tres sesiones son **una sola construcción**: la 20 le agrega Gold al pipeline de la 19 y la 20.2 usa el Gold de la 20.
-No se borra nada entre sesiones; la limpieza está al final de la 20.2.
+Son **una sola construcción**: la 20 le agrega Gold al pipeline de la 19, la 20.2 usa ese Gold, la 21 lo gobierna y la 21.2 lo
+lleva a prod. No se borra nada entre sesiones; cada guía trae su limpieza al final del módulo.
 
 ## Cómo se generan las guías
 
@@ -25,7 +27,7 @@ python notebooks/generar_guias.py
 ```
 
 El generador inserta el código real de `lakeflow/` donde la plantilla dice `{{transformations/…}}` (bloque para copiar) o
-`{{ejecutar:metric_views/…}}` (celda que ejecuta el SQL con el catálogo y esquema del alumno). Así la guía y el pipeline nunca se
+`{{ejecutar:metric_views/…}}` (celda que ejecuta el SQL con `{CATALOGO}.{ESQUEMA}` del alumno en lugar de `datawizard_dev.lending`). Así la guía y el pipeline nunca se
 desincronizan: si cambias un archivo de `lakeflow/`, vuelve a generar.
 
 ## Sesiones anteriores
