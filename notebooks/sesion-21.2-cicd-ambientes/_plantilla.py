@@ -137,7 +137,9 @@ for esquema in [ESQUEMA_DEV, ESQUEMA_PROD]:
 # MAGIC ## Paso 3 — Un token para la máquina 🖱️
 # MAGIC GitHub necesita credenciales para hablar con tu workspace.
 # MAGIC 1. Arriba a la derecha → tu usuario → **Settings** → **Developer** → **Access tokens** → **Generate new token**.
-# MAGIC 2. Comentario: `github-actions-lakeflow`; vigencia: 90 días. **Copia el token ahora**: no se vuelve a mostrar.
+# MAGIC 2. Comentario: `github-actions-lakeflow`; vigencia: 90 días. Si el formulario pide **Scopes**, elige **all-apis**
+# MAGIC    (el bundle usa workspace, pipelines, jobs y Unity Catalog). Con menos scopes el deploy falla con
+# MAGIC    `403 Provided access token does not have required scopes: workspace`. **Copia el token ahora**: no se vuelve a mostrar.
 # MAGIC 3. **Nunca** lo pegues en el código, en un notebook ni en un commit. Solo va al paso 4.
 
 # COMMAND ----------
