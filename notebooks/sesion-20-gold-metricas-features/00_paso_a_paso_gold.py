@@ -555,28 +555,28 @@ display(spark.sql(f"""
 # COMMAND ----------
 
 # Fuente: lakeflow/metric_views/kpi_colocacion.sql (generado: no editar aquí)
-sql = """
+sql = f"""
 -- Sesión 20 · Paso 5 · Metric View: los KPIs de colocación, definidos una vez y consultables con cualquier corte.
 -- No es parte del pipeline: se crea con SQL (SQL editor o notebook en serverless) sobre sus tablas Gold.
 -- Las MEDIDAS son agregados (SUM, COUNT); los ratios se componen con MEASURE() y Databricks los recalcula bien
 -- para cada corte. Así nadie promedia tickets ni mezcla monedas.
--- Para consultarla:  SELECT pais, MEASURE(monto_colocado_usd) FROM datawizard_dev.lakeflow.kpi_colocacion GROUP BY pais
-CREATE OR REPLACE VIEW datawizard_dev.lakeflow.kpi_colocacion
+-- Para consultarla:  SELECT pais, MEASURE(monto_colocado_usd) FROM {CATALOGO}.{ESQUEMA}.kpi_colocacion GROUP BY pais
+CREATE OR REPLACE VIEW {CATALOGO}.{ESQUEMA}.kpi_colocacion
 WITH METRICS
 LANGUAGE YAML
 AS $$
 version: 1.1
 comment: "KPIs de colocación de créditos de Wizard Bank (datos sintéticos). Un desembolso es colocación solo si está Completado. Montos en USD con la tasa del día del desembolso. El nivel de riesgo es el que tenía el cliente al desembolsar."
-source: datawizard_dev.lakeflow.fact_desembolsos_gld
+source: {CATALOGO}.{ESQUEMA}.fact_desembolsos_gld
 joins:
   - name: dim_pais
-    source: datawizard_dev.lakeflow.dim_pais_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_pais_gld
     'on': source.id_pais = dim_pais.id_pais
   - name: dim_cliente
-    source: datawizard_dev.lakeflow.dim_cliente_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_cliente_gld
     'on': source.sk_cliente = dim_cliente.sk_cliente
   - name: dim_producto
-    source: datawizard_dev.lakeflow.dim_producto_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_producto_gld
     'on': source.id_producto = dim_producto.id_producto
 dimensions:
   - name: mes
@@ -633,22 +633,22 @@ measures:
     comment: "Proporción de desembolsos Fallidos o Reversados sobre todos los intentos (0 a 1)"
 $$
 """
-spark.sql(sql.replace("datawizard_dev.lakeflow", f"{CATALOGO}.{ESQUEMA}"))
+spark.sql(sql)
 
 # COMMAND ----------
 
 # Fuente: lakeflow/metric_views/kpi_funnel_app.sql (generado: no editar aquí)
-sql = """
+sql = f"""
 -- Sesión 20 · Paso 5 · Metric View sobre una métrica materializada: el funnel de la app.
 -- metricas_funnel_app_diario_gld ya guarda las BASES por día (vistas, clicks…). La metric view las suma al corte que
 -- se pida y recién ahí divide: el CTR de un mes sale de sum(clicks)/sum(vistas), no del promedio de los CTR diarios.
-CREATE OR REPLACE VIEW datawizard_dev.lakeflow.kpi_funnel_app
+CREATE OR REPLACE VIEW {CATALOGO}.{ESQUEMA}.kpi_funnel_app
 WITH METRICS
 LANGUAGE YAML
 AS $$
 version: 1.1
 comment: "KPIs del funnel de la app de Wizard Bank (datos sintéticos): de ver una oferta a iniciar una solicitud, por día, canal y ubicación en pantalla."
-source: datawizard_dev.lakeflow.metricas_funnel_app_diario_gld
+source: {CATALOGO}.{ESQUEMA}.metricas_funnel_app_diario_gld
 dimensions:
   - name: fecha
     expr: source.fecha
@@ -686,7 +686,7 @@ measures:
     comment: "Solicitudes iniciadas por oferta vista (0 a 1)"
 $$
 """
-spark.sql(sql.replace("datawizard_dev.lakeflow", f"{CATALOGO}.{ESQUEMA}"))
+spark.sql(sql)
 
 # COMMAND ----------
 

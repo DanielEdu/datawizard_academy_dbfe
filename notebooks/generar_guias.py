@@ -4,7 +4,7 @@ Así la guía y el pipeline nunca se desincronizan.
 Marcas en la plantilla (rutas relativas a lakeflow/):
   {{transformations/01_bronze_lending.py}}  → bloque de código 📋 dentro de una celda markdown (el alumno lo copia al pipeline)
   {{ejecutar:metric_views/kpi_colocacion.sql}} → celda ejecutable: el SQL dentro de spark.sql(), con el catálogo y el esquema
-                                              de la guía (CATALOGO, ESQUEMA) en lugar de datawizard_dev.lakeflow
+                                              de la guía (CATALOGO, ESQUEMA) en lugar de datawizard_dev.lending
 
 Uso (desde la raíz del repo o desde notebooks/):  python notebooks/generar_guias.py
 """
@@ -32,12 +32,14 @@ def bloque(ruta):
 
 
 def ejecutable(ruta):
-    sql = (LAKEFLOW / ruta).read_text().rstrip()
+    """El nombre datawizard_dev.lending del archivo se muestra como {CATALOGO}.{ESQUEMA} (f-string): el alumno ve de dónde sale."""
+    sql = (LAKEFLOW / ruta).read_text().rstrip().replace("datawizard_dev.lending", "{CATALOGO}.{ESQUEMA}")
     assert '"""' not in sql, f"{ruta}: no puede contener triple comilla"
+    assert not re.search(r"[{}](?<!{CATALOGO})", sql.replace("{CATALOGO}.{ESQUEMA}", "")), f"{ruta}: llaves sueltas, no cabe en un f-string"
     return "\n".join([
         f"# Fuente: lakeflow/{ruta} (generado: no editar aquí)",
-        f'sql = """\n{sql}\n"""',
-        'spark.sql(sql.replace("datawizard_dev.lakeflow", f"{CATALOGO}.{ESQUEMA}"))',
+        f'sql = f"""\n{sql}\n"""',
+        "spark.sql(sql)",
     ])
 
 

@@ -614,30 +614,30 @@ print("Columnas con el mismo nombre en varias tablas:", dict(sorted(repetidas.it
 # COMMAND ----------
 
 # Fuente: lakeflow/mejoras_genie/kpi_colocacion.sql (generado: no editar aquí)
-sql = """
+sql = f"""
 -- Sesión 20.2 · Paso 6a · kpi_colocacion — VERSIÓN MEJORADA PARA GENIE: la misma metric view de la Sesión 20 con SYNONYMS.
 -- Los sinónimos le dicen a Genie (y a cualquier consumidor) cómo habla el negocio: "cuánto se prestó" = monto_colocado_usd.
 -- Requieren DBR 17.3+ (serverless o SQL warehouse actual). Reemplaza la definición con CREATE OR REPLACE: no hay que borrar nada.
 -- No es parte del pipeline: se crea con SQL (SQL editor o notebook en serverless) sobre sus tablas Gold.
 -- Las MEDIDAS son agregados (SUM, COUNT); los ratios se componen con MEASURE() y Databricks los recalcula bien
 -- para cada corte. Así nadie promedia tickets ni mezcla monedas.
--- Para consultarla:  SELECT pais, MEASURE(monto_colocado_usd) FROM datawizard_dev.lakeflow.kpi_colocacion GROUP BY pais
-CREATE OR REPLACE VIEW datawizard_dev.lakeflow.kpi_colocacion
+-- Para consultarla:  SELECT pais, MEASURE(monto_colocado_usd) FROM {CATALOGO}.{ESQUEMA}.kpi_colocacion GROUP BY pais
+CREATE OR REPLACE VIEW {CATALOGO}.{ESQUEMA}.kpi_colocacion
 WITH METRICS
 LANGUAGE YAML
 AS $$
 version: 1.1
 comment: "KPIs de colocación de créditos de Wizard Bank (datos sintéticos). Un desembolso es colocación solo si está Completado. Montos en USD con la tasa del día del desembolso. El nivel de riesgo es el que tenía el cliente al desembolsar."
-source: datawizard_dev.lakeflow.fact_desembolsos_gld
+source: {CATALOGO}.{ESQUEMA}.fact_desembolsos_gld
 joins:
   - name: dim_pais
-    source: datawizard_dev.lakeflow.dim_pais_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_pais_gld
     'on': source.id_pais = dim_pais.id_pais
   - name: dim_cliente
-    source: datawizard_dev.lakeflow.dim_cliente_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_cliente_gld
     'on': source.sk_cliente = dim_cliente.sk_cliente
   - name: dim_producto
-    source: datawizard_dev.lakeflow.dim_producto_gld
+    source: {CATALOGO}.{ESQUEMA}.dim_producto_gld
     'on': source.id_producto = dim_producto.id_producto
 dimensions:
   - name: mes
@@ -728,7 +728,7 @@ measures:
       - "tasa de fallas"
 $$
 """
-spark.sql(sql.replace("datawizard_dev.lakeflow", f"{CATALOGO}.{ESQUEMA}"))
+spark.sql(sql)
 
 # COMMAND ----------
 

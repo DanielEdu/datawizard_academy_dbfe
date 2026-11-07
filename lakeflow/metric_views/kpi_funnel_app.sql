@@ -1,13 +1,13 @@
 -- Sesión 20 · Paso 5 · Metric View sobre una métrica materializada: el funnel de la app.
 -- metricas_funnel_app_diario_gld ya guarda las BASES por día (vistas, clicks…). La metric view las suma al corte que
 -- se pida y recién ahí divide: el CTR de un mes sale de sum(clicks)/sum(vistas), no del promedio de los CTR diarios.
-CREATE OR REPLACE VIEW datawizard_dev.lakeflow.kpi_funnel_app
+CREATE OR REPLACE VIEW datawizard_dev.lending.kpi_funnel_app
 WITH METRICS
 LANGUAGE YAML
 AS $$
 version: 1.1
 comment: "KPIs del funnel de la app de Wizard Bank (datos sintéticos): de ver una oferta a iniciar una solicitud, por día, canal y ubicación en pantalla."
-source: datawizard_dev.lakeflow.metricas_funnel_app_diario_gld
+source: datawizard_dev.lending.metricas_funnel_app_diario_gld
 dimensions:
   - name: fecha
     expr: source.fecha
