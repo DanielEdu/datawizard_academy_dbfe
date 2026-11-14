@@ -21,6 +21,7 @@ GUIAS = {
     "sesion-20.2-genie": "00_paso_a_paso_genie.py",
     "sesion-21-unity-catalog-gobierno": "00_paso_a_paso_gobierno.py",
     "sesion-21.2-cicd-ambientes": "00_paso_a_paso_cicd.py",
+    "sesion-22-ia-lakehouse-fabric": "00_paso_a_paso_ia.py",
 }
 
 

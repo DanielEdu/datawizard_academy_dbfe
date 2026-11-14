@@ -14,9 +14,10 @@ Los pasos 🖱️ son en la interfaz.
 | 20.2 · Genie | `sesion-20.2-genie/` | `00_paso_a_paso_genie.py` | Genie Agent con benchmark antes/después, metadatos mejorados, Genie One |
 | 21 · Unity Catalog | `sesion-21-unity-catalog-gobierno/` | `00_paso_a_paso_gobierno.py` | Grupos de cuenta y `GRANT`, row filter y column mask en la cartera (declarados en el pipeline), vista para BI, linaje, auditoría y secret scope |
 | 21.2 · CI/CD | `sesion-21.2-cicd-ambientes/` | `00_paso_a_paso_cicd.py` | El bundle `lakeflow/` de dev a prod con GitHub Actions: validar en el PR, desplegar al fusionar a `main` |
+| 22 · IA sobre el Lakehouse y Fabric | `sesion-22-ia-lakehouse-fabric/` | `00_paso_a_paso_ia.py` | Foundation Model APIs, AI Functions sobre mensajes de clientes (`mensajes_clientes_ia`), `ai_forecast`, trazas de MLflow, un índice de AI Search con un RAG, los mensajes en el Genie Agent y el mapa de interoperabilidad con Fabric (90 min) |
 
-Son **una sola construcción**: la 20 le agrega Gold al pipeline de la 19, la 20.2 usa ese Gold, la 21 lo gobierna y la 21.2 lo
-lleva a prod. No se borra nada entre sesiones; cada guía trae su limpieza al final del módulo.
+Son **una sola construcción**: la 20 le agrega Gold al pipeline de la 19, la 20.2 usa ese Gold, la 21 lo gobierna, la 21.2 lo
+lleva a prod y la 22 le suma IA. El curso cierra con el reto de `proyecto-final/proyecto_final.html`. No se borra nada entre sesiones; cada guía trae su limpieza al final del módulo.
 
 ## Cómo se generan las guías
 

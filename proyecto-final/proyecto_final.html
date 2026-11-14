@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Proyecto final — Data Wizard Academy · Databricks Track</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @page { size: A4; margin: 0; }
+
+  :root {
+    --ink:          #0b0b0b;
+    --ink-soft:     #3a3a38;
+    --muted:        #6b6a63;
+    --faint:        #949187;
+    --line:         #e3e1d8;
+    --line-strong:  #c9c6ba;
+    --panel:        #f7f6f2;
+    --panel-strong: #efece3;
+
+    --brand:        #163a7a;  /* azul del mago */
+    --brand-soft:   #e7edf8;
+    --accent:       #c98a12;  /* dorado Data Wizard */
+    --accent-soft:  #fbf1dc;
+    --databricks:   #ff3621;
+    --good:         #0e8a5f;
+
+    --c-src:    #6b4fbb;
+    --c-brz:    #a0622d;
+    --c-slv:    #6f7a86;
+    --c-gld:    #c98a12;
+    --c-use:    #0e8a5f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #ffffff;
+    color: var(--ink);
+    font-family: "Georgia", "Iowan Old Style", "Times New Roman", serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sans, p, li, td, th, .k, .v { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em; background: var(--panel-strong); padding: 0 4px; border-radius: 3px; }
+
+  /* ============ PÁGINA ============ */
+  .page {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 18mm 24mm;
+    margin: 0 auto;
+    background: #ffffff;
+    page-break-after: always;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+  @media screen {
+    body { background: #d8d7d0; padding: 24px 0; }
+    .page { margin: 0 auto 24px; box-shadow: 0 6px 24px rgba(0,0,0,0.18); }
+  }
+  .page-footer {
+    position: absolute; left: 18mm; right: 18mm; bottom: 10mm;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: system-ui, sans-serif; font-size: 8.5px; letter-spacing: 0.03em; color: var(--faint);
+    border-top: 1px solid var(--line); padding-top: 3mm;
+  }
+  .page-footer .pnum::before { content: "Página "; }
+
+  /* ============ PORTADA ============ */
+  .cover { display: flex; flex-direction: column; height: 253mm; }
+  .cover-brandrow { display: flex; align-items: center; justify-content: space-between; }
+  .cover-brandrow .brand { display: flex; align-items: center; gap: 12px; }
+  .cover-brandrow img.dw-logo { height: 54px; width: auto; display: block; }
+  .cover-brandrow .brand-text { font-family: system-ui, sans-serif; line-height: 1.25; }
+  .cover-brandrow .brand-text strong { display: block; font-size: 15px; color: var(--brand); letter-spacing: 0.01em; }
+  .cover-brandrow .brand-text span { font-size: 10.5px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .cover-brandrow .track-tag { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); text-align: right; }
+  .cover-brandrow .track-tag strong { display: block; font-size: 13px; letter-spacing: 0.02em; color: var(--ink); text-transform: none; margin-top: 2px; }
+
+  .cover-hero { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 18mm 0; }
+  .cover-eyebrow { font-family: system-ui, sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  .cover-title { font-size: 42px; line-height: 1.1; font-weight: 400; letter-spacing: -0.01em; margin: 0 0 18px; max-width: 150mm; }
+  .cover-title em { font-style: italic; color: var(--brand); }
+  .cover-sub { font-family: system-ui, sans-serif; font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); max-width: 128mm; margin: 0 0 26px; }
+  .cover-facts { display: flex; gap: 30px; }
+  .cover-fact .k { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  .cover-fact .v { font-size: 15.5px; font-weight: 600; color: var(--ink); }
+
+  .cover-layers { display: flex; gap: 6px; margin: 0 0 26px; }
+  .cover-layers span { font-family: system-ui, sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; padding: 5px 10px; border-radius: 3px; }
+
+  .cover-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line-strong); padding-top: 14px; }
+  .cover-footer img.dbx { height: 17px; width: auto; }
+  .cover-doctype { font-family: system-ui, sans-serif; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); text-align: right; line-height: 1.5; }
+
+  /* ============ ENCABEZADO INTERNO ============ */
+  .doc-header { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 24px; }
+  .doc-header .h-left { display: flex; align-items: center; gap: 10px; }
+  .doc-header img.dw-sm { height: 24px; width: auto; }
+  .doc-header .h-brand { font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; color: var(--brand); }
+  .doc-header .h-sep { width: 1px; height: 16px; background: var(--line-strong); }
+  .doc-header .h-section { font-family: system-ui, sans-serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .doc-header .h-num { font-family: system-ui, sans-serif; font-size: 10px; color: var(--faint); letter-spacing: 0.06em; }
+
+  h1.section-title { font-size: 25px; font-weight: 400; letter-spacing: -0.005em; margin: 0 0 4px; }
+  .section-kicker { font-family: system-ui, sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .section-intro { font-family: system-ui, sans-serif; font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); max-width: 160mm; margin: 0 0 20px; }
+
+  h2.block-title { font-family: system-ui, sans-serif; font-size: 14px; font-weight: 700; margin: 22px 0 9px; display: flex; align-items: center; gap: 8px; }
+  h2.block-title .dot { width: 7px; height: 7px; border-radius: 2px; flex: none; background: var(--brand); }
+  h2.block-title .dot.gold { background: var(--accent); }
+
+  p.body-text { font-size: 11.5px; line-height: 1.62; color: var(--ink-soft); margin: 0 0 11px; }
+  ul.body-list { font-size: 11.3px; line-height: 1.55; color: var(--ink-soft); margin: 0 0 12px; padding-left: 18px; }
+  ul.body-list li { margin-bottom: 5px; }
+  ul.body-list li strong { color: var(--ink); }
+
+  .callout { background: var(--panel); border-left: 3px solid var(--accent); border-radius: 3px; padding: 12px 15px; margin: 4px 0 16px; }
+  .callout.blue { border-left-color: var(--brand); background: var(--brand-soft); }
+  .callout .callout-k { font-family: system-ui, sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .callout.blue .callout-k { color: var(--brand); }
+  .callout p { font-size: 11.3px; line-height: 1.55; color: var(--ink); margin: 0; }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 10.6px; margin: 4px 0 16px; }
+  table.data-table th { text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1.5px solid var(--ink); padding: 0 9px 6px 0; }
+  table.data-table td { padding: 7px 9px 7px 0; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; line-height: 1.45; }
+  table.data-table tr:last-child td { border-bottom: none; }
+  table.data-table td.strong { font-weight: 700; color: var(--ink); }
+  table.data-table td.ses { color: var(--brand); font-weight: 600; white-space: nowrap; }
+  table.data-table tr.total-row td { border-top: 2px solid var(--ink); border-bottom: none; padding-top: 10px; font-weight: 700; color: var(--ink); font-size: 11.5px; }
+
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+  .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+  .col-card { background: var(--panel); border-radius: 4px; padding: 11px 13px; }
+  .col-card .col-k { font-family: system-ui, sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+  .col-card .col-k .dot { width: 7px; height: 7px; border-radius: 2px; }
+  .col-card p { font-size: 10.6px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+  .col-card ul { font-family: system-ui, sans-serif; font-size: 10.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; padding-left: 15px; }
+  .col-card ul li { margin-bottom: 4px; }
+
+  /* Diagrama de capas */
+  .arch { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: 6px 0 18px; }
+  .arch-col { padding: 0 5px; position: relative; }
+  .arch-col:not(:last-child)::after { content: "→"; position: absolute; right: -5px; top: 9px; color: var(--faint); font-family: system-ui, sans-serif; font-size: 13px; }
+  .arch-head { font-family: system-ui, sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; text-align: center; padding: 6px 4px; border-radius: 3px 3px 0 0; }
+  .arch-body { border: 1px solid var(--line-strong); border-top: none; border-radius: 0 0 3px 3px; padding: 7px 7px 8px; min-height: 108px; }
+  .arch-body div { font-family: system-ui, sans-serif; font-size: 9.6px; line-height: 1.35; color: var(--ink-soft); background: var(--panel); border-radius: 3px; padding: 4px 6px; margin-bottom: 4px; }
+  .arch-body div b { color: var(--ink); }
+  .arch-rail { font-family: system-ui, sans-serif; font-size: 9.6px; color: var(--brand); background: var(--brand-soft); border-radius: 3px; padding: 6px 10px; margin: -10px 5px 6px; text-align: center; }
+  .arch-rail + .arch-rail { margin-top: 0; }
+  .arch-rail.gold { color: #8a5d06; background: var(--accent-soft); }
+
+  /* Checklist */
+  ul.check { list-style: none; margin: 0 0 14px; padding: 0; font-size: 10.8px; line-height: 1.45; color: var(--ink-soft); }
+  ul.check li { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  ul.check li:last-child { border-bottom: none; }
+  ul.check li .box { width: 11px; height: 11px; border: 1.4px solid var(--brand); border-radius: 2px; margin-top: 2px; }
+  ul.check li.bonus .box { border-color: var(--accent); border-style: dashed; }
+  ul.check li strong { color: var(--ink); }
+  ul.check li .ref { font-family: system-ui, sans-serif; font-size: 9px; font-weight: 600; color: var(--brand); background: var(--brand-soft); border-radius: 100px; padding: 2px 8px; white-space: nowrap; }
+  ul.check li.bonus .ref { color: #8a5d06; background: var(--accent-soft); }
+
+  pre.tree { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 9.6px; line-height: 1.5; background: var(--panel); border-radius: 4px; padding: 11px 13px; margin: 4px 0 14px; color: var(--ink-soft); white-space: pre; overflow: hidden; }
+  pre.tree b { color: var(--brand); font-weight: 700; }
+  pre.tree i { color: var(--faint); font-style: normal; }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .pill { font-family: system-ui, sans-serif; font-size: 9.5px; font-weight: 600; color: var(--brand); background: var(--panel-strong); border-radius: 100px; padding: 4px 11px; }
+
+  .stat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-box { border: 1px solid var(--line-strong); border-radius: 4px; padding: 11px 13px; font-family: system-ui, sans-serif; }
+  .stat-box .s-k { font-size: 8.8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  .stat-box .s-v { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .stat-box .s-sub { font-size: 9.3px; color: var(--muted); margin-top: 2px; }
+
+  /* Contraportada */
+  .back { display: flex; flex-direction: column; height: 253mm; }
+  .back-top { padding-top: 26mm; text-align: center; }
+  .back-top img.dw-lg { height: 150px; width: auto; margin-bottom: 18px; }
+  .back-top h2 { font-size: 26px; font-weight: 400; margin: 0 0 12px; }
+  .back-top h2 em { color: var(--brand); }
+  .back-top p { font-size: 12px; line-height: 1.7; color: var(--ink-soft); max-width: 132mm; margin: 0 auto 10px; }
+  .back-close { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .back-close .bc-left { font-family: system-ui, sans-serif; font-size: 10px; color: var(--muted); line-height: 1.6; }
+  .back-close .bc-left strong { color: var(--ink); font-size: 11.5px; }
+  .back-close img.dbx { height: 19px; width: auto; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 1 — PORTADA -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-brandrow">
+      <div class="brand">
+        <img class="dw-logo" src="img/datawizard-logo-sm.png" alt="Data Wizard">
+        <div class="brand-text"><strong>Data Wizard Academy</strong><span>#DataWizard</span></div>
+      </div>
+      <div class="track-tag">Databricks Track<strong>Cierre del curso</strong></div>
+    </div>
+
+    <div class="cover-hero">
+      <div class="cover-eyebrow">Proyecto final</div>
+      <h1 class="cover-title">Tu propio <em>Lakehouse</em>,<br>de punta a punta</h1>
+      <p class="cover-sub">Inventas un negocio, generas sus datos y construyes todo lo que viste en las 22 sesiones: ingesta, Bronze, Silver y Gold, features, un Genie Agent, un dashboard y gobierno, desplegado con un bundle. Es la prueba de que sabes hacerlo sin guía paso a paso.</p>
+      <div class="cover-layers">
+        <span style="background:var(--c-src)">Fuentes</span>
+        <span style="background:var(--c-brz)">Bronze</span>
+        <span style="background:var(--c-slv)">Silver</span>
+        <span style="background:var(--c-gld)">Gold</span>
+        <span style="background:var(--c-use)">IA y consumo</span>
+      </div>
+      <div class="cover-facts">
+        <div class="cover-fact"><div class="k">Plataforma</div><div class="v">Databricks Free Edition</div></div>
+        <div class="cover-fact"><div class="k">Entrega</div><div class="v">Repositorio en GitHub</div></div>
+        <div class="cover-fact"><div class="k">Defensa</div><div class="v">Demo de 15 minutos</div></div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <img class="dbx" src="img/databricks-wordmark.png" alt="Databricks">
+      <div class="cover-doctype">Bases del proyecto final<br>v1.0 · creada 2026-11-13 · actualizada 2026-11-13</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 2 — EL RETO -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="doc-header">
+    <div class="h-left"><img class="dw-sm" src="img/datawizard-logo-sm.png" alt=""><span class="h-brand">Data Wizard Academy</span><span class="h-sep"></span><span class="h-section">El reto</span></div>
+    <div class="h-num">01</div>
+  </div>
+
+  <div class="section-kicker">El reto</div>
+  <h1 class="section-title">Un negocio inventado, un Lakehouse real</h1>
+  <p class="section-intro">En el curso construiste Wizard Bank siguiendo guías. Ahora el negocio, los datos y las decisiones son tuyos. Se evalúa que se pueda volver a desplegar, que esté gobernado y que alguien de negocio pueda usarlo.</p>
+
+  <h2 class="block-title"><span class="dot"></span>1 · Elige un negocio</h2>
+  <p class="body-text">Cualquiera con entidades que cambian en el tiempo, transacciones y algo que medir. Algunas ideas:</p>
+  <div class="cols-3">
+    <div class="col-card"><div class="col-k">🛒 Retail</div><p>Tiendas, ventas por ticket, inventario y devoluciones.</p></div>
+    <div class="col-card"><div class="col-k">🚚 Logística</div><p>Envíos, rutas, tracking en tiempo real, entregas fallidas.</p></div>
+    <div class="col-card"><div class="col-k">🏥 Salud</div><p>Citas, médicos, sedes. Datos sensibles: ideal para gobierno.</p></div>
+    <div class="col-card"><div class="col-k">⚡ Energía</div><p>Medidores, lecturas por hora, tarifas, cortes y reclamos.</p></div>
+    <div class="col-card"><div class="col-k">🎬 Streaming</div><p>Suscripciones, catálogo, reproducciones, churn.</p></div>
+    <div class="col-card"><div class="col-k">🎓 Educación</div><p>Alumnos, cursos, notas, asistencia, deserción.</p></div>
+  </div>
+
+  <h2 class="block-title"><span class="dot"></span>2 · Genera tus propios datos</h2>
+  <ul class="body-list">
+    <li><strong>Sintéticos, nunca reales.</strong> Con Python (Faker, numpy) o con <code>ai_gen</code>.</li>
+    <li><strong>Tres fuentes o más</strong>: un maestro que cambia (para SCD2), una transacción de alto volumen y un catálogo.</li>
+    <li><strong>Con problemas a propósito</strong>: duplicados, nulos, datos que llegan tarde o se corrigen. Sin suciedad no hay Silver que mostrar.</li>
+    <li><strong>En varias entregas</strong>, no en una sola carga: así se prueba que la ingesta es incremental.</li>
+  </ul>
+
+  <h2 class="block-title"><span class="dot"></span>3 · Elige por dónde entra el dato</h2>
+  <p class="body-text">Elige una o combina varias, y justifica la elección.</p>
+  <table class="data-table">
+    <thead><tr><th style="width:24%">Fuente</th><th style="width:44%">Cómo se ingesta</th><th>Lo viste en</th></tr></thead>
+    <tbody>
+      <tr><td class="strong">Base relacional</td><td>Postgres en Lakebase o propio, por JDBC o Lakeflow Connect; CDC si la fuente lo permite</td><td class="ses">S9 · S11.2</td></tr>
+      <tr><td class="strong">Archivos en S3</td><td>External location de Unity Catalog + Auto Loader (<code>cloudFiles</code>) en un pipeline</td><td class="ses">S12 · S19</td></tr>
+      <tr><td class="strong">Volume de Unity Catalog</td><td>CSV, JSON o Parquet en <code>/Volumes/…</code> + Auto Loader. Lo más simple en Free Edition</td><td class="ses">S7 · S12</td></tr>
+      <tr><td class="strong">Eventos en streaming</td><td>Un generador de eventos continuo, leído con Structured Streaming</td><td class="ses">S11 · S17</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-k">Regla de oro</div>
+    <p>Todo lo que construyas tiene que poder borrarse y volver a crearse con un solo <code>databricks bundle deploy</code> y una corrida del pipeline. Si algo solo existe porque lo hiciste a mano en la interfaz, no cuenta.</p>
+  </div>
+
+  <div class="page-footer"><span>Data Wizard Academy · Proyecto final · v1.0 · 2026-11-13</span><span class="pnum">2</span></div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 3 — ARQUITECTURA -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="doc-header">
+    <div class="h-left"><img class="dw-sm" src="img/datawizard-logo-sm.png" alt=""><span class="h-brand">Data Wizard Academy</span><span class="h-sep"></span><span class="h-section">Arquitectura esperada</span></div>
+    <div class="h-num">02</div>
+  </div>
+
+  <div class="section-kicker">Arquitectura esperada</div>
+  <h1 class="section-title">Las tres capas, y lo que se construye encima</h1>
+  <p class="section-intro">Es la misma arquitectura de Wizard Bank. Cada caja es una pieza que se espera ver en tu repositorio y en tu workspace.</p>
+
+  <div class="arch">
+    <div class="arch-col">
+      <div class="arch-head" style="background:var(--c-src)">Fuentes</div>
+      <div class="arch-body">
+        <div><b>Generador</b> de datos sintéticos (notebook o job)</div>
+        <div><b>RDBMS</b>, <b>S3</b> o <b>Volume</b></div>
+        <div>Entregas incrementales</div>
+      </div>
+    </div>
+    <div class="arch-col">
+      <div class="arch-head" style="background:var(--c-brz)">Bronze</div>
+      <div class="arch-body">
+        <div><b>Auto Loader</b> o JDBC/CDC</div>
+        <div>Dato crudo + metadatos de ingesta (<code>_archivo</code>, <code>_ingestado_en</code>)</div>
+        <div>Streaming tables</div>
+      </div>
+    </div>
+    <div class="arch-col">
+      <div class="arch-head" style="background:var(--c-slv)">Silver</div>
+      <div class="arch-body">
+        <div><b>Expectations</b> de calidad</div>
+        <div>Deduplicación y tipos</div>
+        <div><b>AUTO CDC</b> con SCD1 y SCD2</div>
+      </div>
+    </div>
+    <div class="arch-col">
+      <div class="arch-head" style="background:var(--c-gld)">Gold</div>
+      <div class="arch-body">
+        <div><b>Estrella</b>: hechos y dimensiones</div>
+        <div><b>Métricas</b> y una <b>metric view</b></div>
+        <div><b>Feature table</b> con llave de tiempo</div>
+      </div>
+    </div>
+    <div class="arch-col">
+      <div class="arch-head" style="background:var(--c-use)">IA y consumo</div>
+      <div class="arch-body">
+        <div><b>Genie Agent</b> con benchmark</div>
+        <div><b>Dashboard</b> AI/BI</div>
+        <div>AI Functions o AI Search (bonus)</div>
+      </div>
+    </div>
+  </div>
+  <div class="arch-rail">🏛️ Unity Catalog en todas las capas: catálogo y esquemas por ambiente, comentarios, permisos por grupo, linaje</div>
+  <div class="arch-rail gold">📦 Declarative Automation Bundle: pipeline, jobs y esquema como código · targets <code>dev</code> y <code>prod</code> · GitHub Actions (bonus)</div>
+
+  <h2 class="block-title"><span class="dot"></span>Lo que se espera en cada capa</h2>
+  <table class="data-table">
+    <thead><tr><th style="width:15%">Capa</th><th style="width:63%">Mínimo esperado</th><th>Lo viste en</th></tr></thead>
+    <tbody>
+      <tr><td class="strong">Bronze</td><td>Ingesta incremental e idempotente: correr dos veces no duplica. Metadatos de origen en cada fila. El esquema puede evolucionar sin romper</td><td class="ses">S11 · S12 · S14</td></tr>
+      <tr><td class="strong">Silver</td><td>Al menos 3 expectations (una que descarte filas), tipos correctos, sin duplicados, y un maestro con historia en SCD2</td><td class="ses">S15 · S16 · S19</td></tr>
+      <tr><td class="strong">Gold</td><td>Un modelo estrella, al menos 2 tablas de métricas con comentarios en las columnas, una metric view con sus medidas, y una feature table con <code>PRIMARY KEY (…, TIMESERIES)</code></td><td class="ses">S18 · S20</td></tr>
+      <tr><td class="strong">Consumo</td><td>Un Genie Agent con 8 a 12 preguntas de benchmark, medido antes y después de mejorar los metadatos, y un dashboard con 4 a 6 visualizaciones</td><td class="ses">S20.2 · S22</td></tr>
+      <tr><td class="strong">Gobierno</td><td>Permisos por grupo (<code>GRANT</code>), un row filter o una column mask sobre un dato sensible, y una consulta de linaje que muestre el recorrido de una tabla Gold</td><td class="ses">S21</td></tr>
+      <tr><td class="strong">Despliegue</td><td>Un bundle con targets <code>dev</code> y <code>prod</code> que crea el esquema, el pipeline y un job que lo orquesta</td><td class="ses">S13 · S21.2</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <div class="callout-k">Decisiones que tienes que poder defender</div>
+    <p>Por qué esa fuente y ese modo de ingesta; qué columna es SCD2 y por qué; cuál es el grano de cada tabla Gold; qué tabla le das a Genie y cuál no; quién ve qué dato y por qué.</p>
+  </div>
+
+  <div class="page-footer"><span>Data Wizard Academy · Proyecto final · v1.0 · 2026-11-13</span><span class="pnum">3</span></div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 4 — ENTREGABLES -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="doc-header">
+    <div class="h-left"><img class="dw-sm" src="img/datawizard-logo-sm.png" alt=""><span class="h-brand">Data Wizard Academy</span><span class="h-sep"></span><span class="h-section">Entregables</span></div>
+    <div class="h-num">03</div>
+  </div>
+
+  <div class="section-kicker">Entregables</div>
+  <h1 class="section-title">Lo obligatorio y lo que suma</h1>
+  <p class="section-intro">Los entregables obligatorios cubren el curso completo. Los bonus son para quien quiera ir más allá: no reemplazan a un obligatorio que falte.</p>
+
+  <h2 class="block-title"><span class="dot"></span>Obligatorios</h2>
+  <ul class="check">
+    <li><span class="box"></span><span><strong>Generador de datos</strong> sintéticos con al menos 3 fuentes, problemas de calidad a propósito y entregas incrementales</span><span class="ref">S8.2 · S14</span></li>
+    <li><span class="box"></span><span><strong>Ingesta a Bronze</strong> desde una base relacional, S3 o un volume, incremental e idempotente</span><span class="ref">S9 a S14</span></li>
+    <li><span class="box"></span><span><strong>Silver</strong> con expectations, deduplicación y un maestro en SCD2 con <code>AUTO CDC</code></span><span class="ref">S15 · S16 · S19</span></li>
+    <li><span class="box"></span><span><strong>Gold</strong>: estrella, 2 o más tablas de métricas y una metric view, con comentarios en tablas y columnas</span><span class="ref">S18 · S20</span></li>
+    <li><span class="box"></span><span><strong>Feature table</strong> con llave primaria de tiempo y una consulta point-in-time que evite fuga de datos</span><span class="ref">S20</span></li>
+    <li><span class="box"></span><span><strong>Genie Agent</strong> con benchmark antes y después de mejorar los metadatos, con el puntaje de cada uno</span><span class="ref">S20.2</span></li>
+    <li><span class="box"></span><span><strong>Dashboard AI/BI</strong> sobre Gold con 4 a 6 visualizaciones y al menos un filtro</span><span class="ref">S20 · S22</span></li>
+    <li><span class="box"></span><span><strong>Gobierno</strong>: grupos y <code>GRANT</code>, un row filter o una column mask, y una consulta de linaje</span><span class="ref">S21</span></li>
+    <li><span class="box"></span><span><strong>Bundle</strong> con targets <code>dev</code> y <code>prod</code>: esquema, pipeline y un job que lo orquesta</span><span class="ref">S13 · S21.2</span></li>
+    <li><span class="box"></span><span><strong>README</strong> con el negocio, el diagrama de arquitectura, las decisiones de diseño y cómo desplegarlo desde cero</span><span class="ref">S13.2</span></li>
+  </ul>
+
+  <h2 class="block-title"><span class="dot gold"></span>Bonus</h2>
+  <ul class="check">
+    <li class="bonus"><span class="box"></span><span><strong>GitHub Actions</strong>: validar el bundle en cada pull request y desplegar a prod al fusionar a <code>main</code>, con <code>main</code> protegida</span><span class="ref">S21.2</span></li>
+    <li class="bonus"><span class="box"></span><span><strong>AI Functions</strong> sobre texto libre de tu negocio (reseñas, reclamos, notas): clasificar, extraer, anonimizar</span><span class="ref">S22</span></li>
+    <li class="bonus"><span class="box"></span><span><strong>AI Search</strong> con un índice sobre tus textos y un RAG pequeño, trazado con MLflow</span><span class="ref">S22</span></li>
+    <li class="bonus"><span class="box"></span><span><strong>Streaming</strong>: una fuente de eventos continua procesada de punta a punta</span><span class="ref">S11 · S17</span></li>
+    <li class="bonus"><span class="box"></span><span><strong>Spec-Driven Development</strong>: la spec de cada pieza en el repo, escrita antes de pedirle el código a Genie Code o a Claude Code</span><span class="ref">S13.2</span></li>
+    <li class="bonus"><span class="box"></span><span><strong>Secretos</strong>: la credencial de la base relacional en un secret scope, nunca en el código</span><span class="ref">S21</span></li>
+  </ul>
+
+  <div class="callout">
+    <div class="callout-k">Cuidado con la Free Edition</div>
+    <p>Un solo pipeline activo por tipo, un solo endpoint de AI Search y trabajos con límite de concurrencia. Diseña con eso en mente: un pipeline con todas las capas, como el de Wizard Bank, entra sin problema.</p>
+  </div>
+
+  <div class="page-footer"><span>Data Wizard Academy · Proyecto final · v1.0 · 2026-11-13</span><span class="pnum">4</span></div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 5 — REPOSITORIO Y PLAN -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="doc-header">
+    <div class="h-left"><img class="dw-sm" src="img/datawizard-logo-sm.png" alt=""><span class="h-brand">Data Wizard Academy</span><span class="h-sep"></span><span class="h-section">Repositorio y plan de trabajo</span></div>
+    <div class="h-num">04</div>
+  </div>
+
+  <div class="section-kicker">Repositorio y plan de trabajo</div>
+  <h1 class="section-title">Una estructura que se despliega sola</h1>
+  <p class="section-intro">Una estructura sugerida, basada en el repositorio del curso. Puedes cambiarla si explicas por qué en el README.</p>
+
+  <div class="cols-2">
+    <div>
+      <pre class="tree"><b>mi-lakehouse/</b>
+├── README.md            <i># negocio, arquitectura, decisiones</i>
+├── <b>datagen/</b>              <i># generador de datos sintéticos</i>
+│   └── generar_datos.py
+├── <b>lakehouse/</b>            <i># el bundle</i>
+│   ├── databricks.yml   <i># targets dev y prod</i>
+│   ├── <b>resources/</b>
+│   │   ├── schema.yml
+│   │   ├── pipeline.yml
+│   │   └── job.yml
+│   ├── <b>transformations/</b>  <i># Bronze, Silver, Gold</i>
+│   ├── <b>metric_views/</b>
+│   └── <b>gobierno/</b>         <i># grants, row filter, mask</i>
+├── <b>consumo/</b>
+│   ├── genie_benchmark.md
+│   └── dashboard.lvdash.json
+├── <b>specs/</b>               <i># bonus: SDD</i>
+└── <b>.github/workflows/</b>   <i># bonus: CI/CD</i></pre>
+    </div>
+    <div>
+      <pre class="tree"><i># lakehouse/databricks.yml (resumen)</i>
+bundle:
+  name: mi_lakehouse
+
+variables:
+  catalog: { default: mi_catalogo }
+  schema:  { default: mi_negocio_dev }
+
+targets:
+  dev:
+    default: true
+    presets:
+      pipelines_development: true
+      trigger_pause_status: PAUSED
+  prod:
+    mode: production
+    variables:
+      schema: mi_negocio_prod</pre>
+      <div class="callout blue" style="margin-top:0">
+        <div class="callout-k">La prueba de fuego</div>
+        <p>Otra persona clona tu repo, cambia el <code>host</code> y el perfil, corre <code>databricks bundle deploy</code> y la ejecución del job, y obtiene tu Lakehouse completo.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="block-title"><span class="dot"></span>Plan de trabajo sugerido</h2>
+  <table class="data-table">
+    <thead><tr><th style="width:15%">Hito</th><th style="width:55%">Qué queda listo</th><th>Cómo se demuestra</th></tr></thead>
+    <tbody>
+      <tr><td class="strong">1 · Diseño</td><td>Negocio elegido, modelo de datos, fuentes y spec de cada pieza</td><td>README con diagrama y specs</td></tr>
+      <tr><td class="strong">2 · Datos e ingesta</td><td>Generador funcionando y Bronze incremental desde la fuente elegida</td><td>Dos corridas sin duplicados</td></tr>
+      <tr><td class="strong">3 · Silver y Gold</td><td>Calidad, SCD2, estrella, métricas, metric view y feature table</td><td>Event log con expectations y conteos</td></tr>
+      <tr><td class="strong">4 · Consumo y gobierno</td><td>Genie Agent con benchmark, dashboard, permisos y seguridad fina</td><td>Puntaje antes/después, prueba con grupos</td></tr>
+      <tr><td class="strong">5 · Producción</td><td>Bundle en dev y prod, y CI/CD si haces el bonus</td><td><code>bundle deploy -t prod</code> desde cero</td></tr>
+    </tbody>
+  </table>
+
+  <div class="pill-row">
+    <span class="pill">Lakeflow pipelines</span><span class="pill">Auto Loader</span><span class="pill">AUTO CDC · SCD2</span><span class="pill">Expectations</span><span class="pill">Metric views</span><span class="pill">Feature tables</span><span class="pill">Genie Agent</span><span class="pill">AI/BI Dashboards</span><span class="pill">Unity Catalog</span><span class="pill">Declarative Automation Bundles</span><span class="pill">GitHub Actions</span><span class="pill">AI Functions</span>
+  </div>
+
+  <div class="page-footer"><span>Data Wizard Academy · Proyecto final · v1.0 · 2026-11-13</span><span class="pnum">5</span></div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 6 — EVALUACIÓN -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="doc-header">
+    <div class="h-left"><img class="dw-sm" src="img/datawizard-logo-sm.png" alt=""><span class="h-brand">Data Wizard Academy</span><span class="h-sep"></span><span class="h-section">Evaluación y defensa</span></div>
+    <div class="h-num">05</div>
+  </div>
+
+  <div class="section-kicker">Evaluación y defensa</div>
+  <h1 class="section-title">Cómo se evalúa</h1>
+  <p class="section-intro">Una rúbrica sobre 100 puntos, más hasta 15 de bonus. Lo que pesa más es lo que separa a un Data Engineer de alguien que siguió un tutorial: que el pipeline sea confiable, que esté gobernado y que se despliegue solo.</p>
+
+  <div class="stat-strip">
+    <div class="stat-box"><div class="s-k">Total</div><div class="s-v">100 pts</div><div class="s-sub">+ hasta 15 de bonus</div></div>
+    <div class="stat-box"><div class="s-k">Para aprobar</div><div class="s-v">70 pts</div><div class="s-sub">con todos los obligatorios</div></div>
+    <div class="stat-box"><div class="s-k">Defensa</div><div class="s-v">15 min</div><div class="s-sub">10 de demo + 5 de preguntas</div></div>
+    <div class="stat-box"><div class="s-k">Entrega</div><div class="s-v">GitHub</div><div class="s-sub">repo público o compartido</div></div>
+  </div>
+
+  <table class="data-table">
+    <thead><tr><th style="width:27%">Criterio</th><th style="width:9%">Puntos</th><th>Qué se ve en un proyecto excelente</th></tr></thead>
+    <tbody>
+      <tr><td class="strong">Datos e ingesta</td><td class="strong">15</td><td>Datos con problemas realistas, fuente bien elegida, ingesta incremental que no duplica al correr dos veces</td></tr>
+      <tr><td class="strong">Silver y calidad</td><td class="strong">15</td><td>Expectations con criterio de negocio, SCD2 correcto y verificable con una consulta de historia</td></tr>
+      <tr><td class="strong">Gold y features</td><td class="strong">20</td><td>Grano claro en cada tabla, comentarios útiles, metric view con medidas bien definidas, feature table sin fuga de datos</td></tr>
+      <tr><td class="strong">Genie y dashboard</td><td class="strong">15</td><td>Benchmark con preguntas trampa, mejora medida en el puntaje, dashboard que responde preguntas del negocio</td></tr>
+      <tr><td class="strong">Gobierno</td><td class="strong">10</td><td>Permisos mínimos por grupo, seguridad fina sobre el dato sensible correcto, linaje mostrado</td></tr>
+      <tr><td class="strong">Despliegue con bundle</td><td class="strong">15</td><td>Todo como código, dev y prod separados, se despliega desde cero sin pasos manuales</td></tr>
+      <tr><td class="strong">README y defensa</td><td class="strong">10</td><td>Explica el negocio y cada decisión, la demo corre en vivo, responde por qué y no solo qué</td></tr>
+      <tr class="total-row"><td>Total</td><td>100</td><td>Bonus: CI/CD +5 · AI Functions o AI Search +5 · streaming, SDD o secretos +5</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="block-title"><span class="dot"></span>La defensa</h2>
+  <div class="cols-2">
+    <div class="col-card">
+      <div class="col-k">🎬 Demo en vivo (10 min)</div>
+      <ul>
+        <li>El negocio y la arquitectura en un diagrama</li>
+        <li>Una entrega nueva de datos que recorre las tres capas</li>
+        <li>Genie respondiendo una pregunta del benchmark</li>
+        <li>Un usuario sin permisos que no ve el dato sensible</li>
+      </ul>
+    </div>
+    <div class="col-card">
+      <div class="col-k">❓ Preguntas típicas (5 min)</div>
+      <ul>
+        <li>¿Qué pasa si el pipeline corre dos veces seguidas?</li>
+        <li>¿Por qué esa columna es SCD2 y no SCD1?</li>
+        <li>¿Qué pregunta del benchmark falla y por qué?</li>
+        <li>¿Cómo pasarías esto a producción en una empresa?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-k">Sobre la IA</div>
+    <p>Puedes usar Genie Code, Claude Code o cualquier asistente. En la defensa tienes que poder explicar cada línea: si una parte la escribió un agente, la spec que le diste es parte de tu entrega.</p>
+  </div>
+
+  <div class="page-footer"><span>Data Wizard Academy · Proyecto final · v1.0 · 2026-11-13</span><span class="pnum">6</span></div>
+</div>
+
+<!-- ============================================================= -->
+<!-- PÁGINA 7 — CONTRAPORTADA -->
+<!-- ============================================================= -->
+<div class="page">
+  <div class="back">
+    <div class="back-top">
+      <img class="dw-lg" src="img/datawizard-logo-texto.png" alt="Data Wizard">
+      <h2>Ahora, <em>tu</em> Lakehouse</h2>
+      <p>En 22 sesiones construiste un Lakehouse que ingesta, transforma, gobierna, se despliega solo y responde preguntas en español. El proyecto final es lo mismo, con tus datos y tus decisiones.</p>
+      <p>Compártelo en LinkedIn con <strong>#DataWizard</strong> cuando lo termines: un repositorio que se despliega desde cero vale más que cualquier certificado.</p>
+    </div>
+    <div class="back-close">
+      <div class="bc-left"><strong>Data Wizard Academy · Databricks Track</strong><br>Bases del proyecto final · v1.0 · creada 2026-11-13 · actualizada 2026-11-13</div>
+      <img class="dbx" src="img/databricks-wordmark.png" alt="Databricks">
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
