@@ -16,6 +16,9 @@ La guía `00_paso_a_paso_*.py` es generada desde `_plantilla.py` con `python not
 `lakeflow/`: si cambias un archivo de `lakeflow/`, regenera las guías. Los notebooks de las Sesiones 11 a 18 se quedan en
 `bronze/notebooks/`, `silver/notebooks/` y `gold/notebooks/` para no romper rutas de los alumnos.
 
+**Proyecto final:** `proyecto-final/proyecto_final.html` son las bases del reto de cierre (HTML A4, logos en `proyecto-final/img/`).
+Es material de clase, no un bundle: se abre en el navegador.
+
 ## Convenciones de nombres
 
 Idioma: términos técnicos y acciones en inglés (`ingest`, `deploy`, `refresh`); descripciones y
